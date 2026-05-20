@@ -1,268 +1,274 @@
-import { useState } from "react"
-import OutbreakChart from "./components/OutbreakChart"
-import outbreakData from "./data/dummyData"
+import "./App.css";
+
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
+import { diseaseData } from "./data/dummyData";
+import { useState } from "react";
 
 function App() {
-
-  const diseases = Object.keys(outbreakData)
-
-  const [selectedDisease, setSelectedDisease] =
-    useState(diseases[0])
-
   const [selectedRegion, setSelectedRegion] =
-    useState(
-      Object.keys(outbreakData[diseases[0]])[0]
-    )
+  useState(diseaseData[0]);
 
-  const currentStats =
-    outbreakData[selectedDisease][selectedRegion]
-
-  const weeklyData = currentStats.weeklyData
-
-  const latestCases =
-    weeklyData[weeklyData.length - 1].cases
-
-  const previousCases =
-    weeklyData[weeklyData.length - 2].cases
-
-  const growth =
-    ((latestCases - previousCases) / previousCases) * 100
-
+const riskLevel =
+  selectedRegion.reportedCases > 350
+    ? "CRITICAL"
+    : selectedRegion.reportedCases > 250
+    ? "HIGH"
+    : selectedRegion.reportedCases > 150
+    ? "MODERATE"
+    : "LOW";
+  const data = [
+  { day: "Mon", cases: 2400 },
+  { day: "Tue", cases: 3200 },
+  { day: "Wed", cases: 2900 },
+  { day: "Thu", cases: 4100 },
+  { day: "Fri", cases: 5200 },
+  { day: "Sat", cases: 6100 },
+  { day: "Sun", cases: 7200 },
+];
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 text-white px-8 py-6">
-
-      {/* Navbar */}
-      <div className="flex items-center justify-between mb-10">
-
+    <div className="app">
+      <div className="topbar">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight">
-            Disease Outbreak Predictor
-          </h1>
-
-          <p className="text-gray-400 mt-2 text-sm">
-            Real-time outbreak monitoring and forecasting dashboard
+          <h1>GLOBAL EPIDEMIC SURVEILLANCE SYSTEM</h1>
+          <p>
+            AI-powered outbreak intelligence dashboard
           </p>
         </div>
 
-        {/* Dynamic Risk Badge */}
-        <div
-          className={`
-            px-4 py-2 rounded-full border
-            ${
-              currentStats.risk === "High"
-                ? "bg-red-500/20 border-red-500/30"
-                : currentStats.risk === "Medium"
-                ? "bg-yellow-500/20 border-yellow-500/30"
-                : "bg-green-500/20 border-green-500/30"
-            }
-          `}
-        >
-          <span
-            className={`
-              font-semibold
-              ${
-                currentStats.risk === "High"
-                  ? "text-red-400"
-                  : currentStats.risk === "Medium"
-                  ? "text-yellow-400"
-                  : "text-green-400"
-              }
-            `}
-          >
-            {currentStats.risk} Risk Zone
-          </span>
-        </div>
-
+        <div className={`status-box ${riskLevel.toLowerCase()}`}>
+  {riskLevel} RISK • LIVE MONITORING
+</div>
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-4 mb-8">
+      <div className="main-layout">
 
-        {/* Disease Dropdown */}
-        <select
-          value={selectedDisease}
-          onChange={(e) => {
+<div className="glass-card">
+  <h2>Threat Level</h2>
 
-            const disease = e.target.value
+  <div className={`threat-circle ${riskLevel.toLowerCase()}`}>
+  <span>{riskLevel}</span>
+</div>
+<div className="risk-bar-container">
 
-            setSelectedDisease(disease)
+  <div
+    className={`risk-bar-fill ${riskLevel.toLowerCase()}`}
+    style={{
+      width: `${Math.min(
+        selectedRegion.reportedCases / 5,
+        100
+      )}%`
+    }}
+  ></div>
 
-            const firstRegion =
-              Object.keys(
-                outbreakData[disease]
-              )[0]
+</div>
 
-            setSelectedRegion(firstRegion)
-          }}
-          className="bg-gray-900 text-white border border-white/10 px-4 py-3 rounded-2xl outline-none"
+<div className="risk-percentage">
+  Severity Score:
+  {" "}
+  {Math.min(
+    Math.floor(selectedRegion.reportedCases / 5),
+    100
+  )}%
+</div>
+  <div className="risk-stats">
+
+    <div className="risk-item">
+      <span>Region</span>
+      <strong>{selectedRegion.region}</strong>
+    </div>
+
+    <div className="risk-item">
+      <span>Cases</span>
+      <strong>{selectedRegion.reportedCases}</strong>
+    </div>
+
+    <div className="risk-item">
+      <span>Humidity</span>
+      <strong>{selectedRegion.humidity}%</strong>
+    </div>
+
+  </div>
+</div>
+
+        <div className="glass-card">
+          <h2>Outbreak Analytics</h2>
+          <select
+  className="region-select"
+  onChange={(e) => {
+    const region = diseaseData.find(
+      item => item.region === e.target.value
+    );
+
+    setSelectedRegion(region);
+  }}
+>
+  {diseaseData.map((item, index) => (
+    <option key={index}>
+      {item.region}
+    </option>
+  ))}
+</select>
+
+          <div className="real-chart">
+  <ResponsiveContainer width="100%" height={320}>
+    <AreaChart data={data}>
+
+      <defs>
+        <linearGradient
+          id="casesGradient"
+          x1="0"
+          y1="0"
+          x2="0"
+          y2="1"
         >
-          {Object.keys(outbreakData).map(
-            (disease) => (
-              <option
-                key={disease}
-                className="bg-gray-900"
-                value={disease}
-              >
-                {disease}
-              </option>
-            )
-          )}
-        </select>
-
-        {/* Region Dropdown */}
-        <select
-          value={selectedRegion}
-          onChange={(e) =>
-            setSelectedRegion(e.target.value)
-          }
-          className="bg-gray-900 text-white border border-white/10 px-4 py-3 rounded-2xl outline-none"
-        >
-          {Object.keys(
-            outbreakData[selectedDisease]
-          ).map((region) => (
-            <option
-              key={region}
-              className="bg-gray-900"
-              value={region}
-            >
-              {region}
-            </option>
-          ))}
-        </select>
-
-      </div>
-
-      {/* Top Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-
-        {/* Probability Card */}
-        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-6 shadow-2xl">
-
-          <p className="text-gray-400 text-sm">
-            Outbreak Probability
-          </p>
-
-          <h2 className="text-5xl font-bold mt-4">
-            {currentStats.probability}%
-          </h2>
-
-          <p
-            className={`mt-3 text-sm ${
-              growth >= 0
-                ? "text-green-400"
-                : "text-red-400"
-            }`}
-          >
-            {growth >= 0 ? "↑" : "↓"}{" "}
-            {Math.abs(growth).toFixed(1)}%
-            {" "}
-            from last week
-          </p>
-
-        </div>
-
-        {/* Cases Card */}
-        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-6 shadow-2xl">
-
-          <p className="text-gray-400 text-sm">
-            Predicted Cases
-          </p>
-
-          <h2 className="text-5xl font-bold mt-4">
-            {currentStats.predictedCases}
-          </h2>
-
-          <p className="text-yellow-400 mt-3 text-sm">
-            {selectedRegion}
-          </p>
-
-        </div>
-
-        {/* Disease Card */}
-        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-6 shadow-2xl">
-
-          <p className="text-gray-400 text-sm">
-            Active Disease
-          </p>
-
-          <h2 className="text-5xl font-bold mt-4">
-            {selectedDisease}
-          </h2>
-
-          <p className="text-red-400 mt-3 text-sm">
-            {currentStats.risk} Risk Detected
-          </p>
-
-        </div>
-
-      </div>
-
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {/* Chart */}
-        <div className="lg:col-span-2">
-
-          <OutbreakChart
-            selectedDisease={selectedDisease}
-            selectedRegion={selectedRegion}
+          <stop
+            offset="5%"
+            stopColor={
+  riskLevel === "LOW"
+    ? "#00ffaa"
+    : riskLevel === "MODERATE"
+    ? "#facc15"
+    : riskLevel === "HIGH"
+    ? "#fb7185"
+    : "#ff00aa"
+}
+            stopOpacity={0.5}
           />
 
+          <stop
+            offset="95%"
+            stopColor={
+  riskLevel === "LOW"
+    ? "#00ffaa"
+    : riskLevel === "MODERATE"
+    ? "#facc15"
+    : riskLevel === "HIGH"
+    ? "#fb7185"
+    : "#ff00aa"
+}
+            stopOpacity={0}
+          />
+        </linearGradient>
+      </defs>
+
+      <CartesianGrid
+        strokeDasharray="3 3"
+        stroke="rgba(255,255,255,0.08)"
+      />
+
+      <XAxis
+        dataKey="day"
+        stroke="#94a3b8"
+      />
+
+      <YAxis
+        stroke="#94a3b8"
+      />
+
+      <Tooltip
+        contentStyle={{
+          background: "#081120",
+          border: "1px solid rgba(255,255,255,0.08)",
+          borderRadius: "14px",
+          color: "white",
+        }}
+      />
+
+      <Area
+        type="monotone"
+        dataKey="cases"
+        stroke={
+  riskLevel === "LOW"
+    ? "#00ffaa"
+    : riskLevel === "MODERATE"
+    ? "#facc15"
+    : riskLevel === "HIGH"
+    ? "#fb7185"
+    : "#ff00aa"
+}
+        strokeWidth={4}
+        fill="url(#casesGradient)"
+      />
+
+    </AreaChart>
+  </ResponsiveContainer>
+</div>
+<div className="metrics-grid">
+
+  <div className="metric-card">
+    <h3>Temperature</h3>
+    <p>{selectedRegion.temperature}°C</p>
+  </div>
+
+  <div className="metric-card">
+    <h3>Humidity</h3>
+    <p>{selectedRegion.humidity}%</p>
+  </div>
+
+  <div className="metric-card">
+    <h3>Search Trend</h3>
+    <p>{selectedRegion.searchTrend}</p>
+  </div>
+
+  <div className="metric-card">
+    <h3>Reported Cases</h3>
+    <p>{selectedRegion.reportedCases}</p>
+  </div>
+
+</div>
         </div>
 
-        {/* Region Details */}
-        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-6 shadow-2xl">
+        <div className={`glass-card insights-card ${riskLevel.toLowerCase()}`}>
+          <h2>AI Insights</h2>
+          <div className="activity-feed">
 
-          <h2 className="text-2xl font-semibold mb-6">
-            Region Details
-          </h2>
+  <div className="activity-item">
+    <div className="activity-dot"></div>
+    <p>Scanning environmental anomalies...</p>
+  </div>
 
-          <div className="space-y-5">
+  <div className="activity-item">
+    <div className="activity-dot"></div>
+    <p>Analyzing outbreak acceleration trends...</p>
+  </div>
 
-            <div className="bg-white/5 p-4 rounded-2xl">
+  <div className="activity-item">
+    <div className="activity-dot"></div>
+    <p>Synchronizing regional climate data...</p>
+  </div>
 
-              <p className="text-gray-400 text-sm">
-                Region
-              </p>
+</div>
 
-              <h3 className="text-xl font-semibold mt-1">
-                {selectedRegion}
-              </h3>
+          <div className="insight">
+  {selectedRegion.searchTrend > 80
+    ? "Public search activity indicates rising outbreak concern."
+    : "Search behavior remains within normal thresholds."}
+</div>
 
-            </div>
+<div className="insight">
+  {selectedRegion.humidity > 70
+    ? "High humidity may accelerate vector-borne transmission."
+    : "Humidity conditions remain relatively stable."}
+</div>
 
-            <div className="bg-white/5 p-4 rounded-2xl">
-
-              <p className="text-gray-400 text-sm">
-                Temperature
-              </p>
-
-              <h3 className="text-xl font-semibold mt-1">
-                {currentStats.temperature}°C
-              </h3>
-
-            </div>
-
-            <div className="bg-white/5 p-4 rounded-2xl">
-
-              <p className="text-gray-400 text-sm">
-                Humidity
-              </p>
-
-              <h3 className="text-xl font-semibold mt-1">
-                {currentStats.humidity}%
-              </h3>
-
-            </div>
-
-          </div>
-
+<div className="insight">
+  {selectedRegion.reportedCases > 300
+    ? "AI model predicts elevated outbreak expansion risk."
+    : "Outbreak growth currently appears manageable."}
+</div>
         </div>
 
       </div>
-
     </div>
-  )
+  );
 }
 
-export default App
+export default App;

@@ -1,268 +1,208 @@
-import { useState } from "react"
-import OutbreakChart from "./components/OutbreakChart"
-import outbreakData from "./data/dummyData"
+import "./App.css";
+import CountUp from "react-countup";
+import { motion } from "framer-motion";
+import {
+  FaExclamationTriangle,
+  FaHeartbeat,
+  FaShieldVirus,
+  FaBiohazard,
+} from "react-icons/fa";
 
 function App() {
+  const stats = [
+    {
+      title: "Predicted Cases",
+      value: 12480,
+      color: "#00ffaa",
+    },
+    {
+      title: "Critical Zones",
+      value: 18,
+      color: "#ff5c7c",
+    },
+    {
+      title: "Recovery Rate",
+      value: 84,
+      suffix: "%",
+      color: "#4da3ff",
+    },
+    {
+      title: "Transmission Growth",
+      value: 12,
+      suffix: "%",
+      color: "#ffb84d",
+    },
+  ];
 
-  const diseases = Object.keys(outbreakData)
-
-  const [selectedDisease, setSelectedDisease] =
-    useState(diseases[0])
-
-  const [selectedRegion, setSelectedRegion] =
-    useState(
-      Object.keys(outbreakData[diseases[0]])[0]
-    )
-
-  const currentStats =
-    outbreakData[selectedDisease][selectedRegion]
-
-  const weeklyData = currentStats.weeklyData
-
-  const latestCases =
-    weeklyData[weeklyData.length - 1].cases
-
-  const previousCases =
-    weeklyData[weeklyData.length - 2].cases
-
-  const growth =
-    ((latestCases - previousCases) / previousCases) * 100
+  const feed = [
+    "Mumbai transmission spike detected",
+    "Pune recovery index improved",
+    "AI outbreak engine updated",
+    "Delhi entered moderate-risk state",
+    "Containment success probability increased",
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 text-white px-8 py-6">
+    <div className="app">
 
-      {/* Navbar */}
-      <div className="flex items-center justify-between mb-10">
+      <div className="background-grid"></div>
 
+      <header className="topbar">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight">
-            Disease Outbreak Predictor
-          </h1>
-
-          <p className="text-gray-400 mt-2 text-sm">
-            Real-time outbreak monitoring and forecasting dashboard
-          </p>
+          <h1>GLOBAL EPIDEMIC SURVEILLANCE SYSTEM</h1>
+          <p>AI-powered outbreak intelligence & predictive analytics</p>
         </div>
 
-        {/* Dynamic Risk Badge */}
-        <div
-          className={`
-            px-4 py-2 rounded-full border
-            ${
-              currentStats.risk === "High"
-                ? "bg-red-500/20 border-red-500/30"
-                : currentStats.risk === "Medium"
-                ? "bg-yellow-500/20 border-yellow-500/30"
-                : "bg-green-500/20 border-green-500/30"
-            }
-          `}
-        >
-          <span
-            className={`
-              font-semibold
-              ${
-                currentStats.risk === "High"
-                  ? "text-red-400"
-                  : currentStats.risk === "Medium"
-                  ? "text-yellow-400"
-                  : "text-green-400"
-              }
-            `}
+        <div className="status-box">
+          <span className="pulse"></span>
+          LIVE MONITORING ACTIVE
+        </div>
+      </header>
+
+      <div className="main-layout">
+
+        <div className="left-panel">
+
+          <motion.div
+            className="glass-card giant-card"
+            initial={{ opacity: 0, x: -40 }}
+            animate={{ opacity: 1, x: 0 }}
           >
-            {currentStats.risk} Risk Zone
-          </span>
+            <h2>Threat Level</h2>
+
+            <div className="threat-circle">
+              HIGH
+            </div>
+
+            <p>
+              AI systems indicate accelerated spread
+              patterns across western monitoring zones.
+            </p>
+          </motion.div>
+
+          <motion.div
+            className="glass-card"
+            initial={{ opacity: 0, x: -40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <h2>Live Activity Feed</h2>
+
+            <div className="feed">
+              {feed.map((item, index) => (
+                <div className="feed-item" key={index}>
+                  <span></span>
+                  {item}
+                </div>
+              ))}
+            </div>
+          </motion.div>
+
         </div>
 
-      </div>
+        <div className="center-panel">
 
-      {/* Filters */}
-      <div className="flex gap-4 mb-8">
+          <motion.div
+            className="glass-card graph-panel"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="graph-header">
+              <h2>Outbreak Intelligence Overview</h2>
 
-        {/* Disease Dropdown */}
-        <select
-          value={selectedDisease}
-          onChange={(e) => {
+              <select>
+                <option>Mumbai</option>
+                <option>Pune</option>
+                <option>Delhi</option>
+                <option>Bangalore</option>
+              </select>
+            </div>
 
-            const disease = e.target.value
+            <div className="fake-graph">
+              <div className="graph-line"></div>
+            </div>
+          </motion.div>
 
-            setSelectedDisease(disease)
-
-            const firstRegion =
-              Object.keys(
-                outbreakData[disease]
-              )[0]
-
-            setSelectedRegion(firstRegion)
-          }}
-          className="bg-gray-900 text-white border border-white/10 px-4 py-3 rounded-2xl outline-none"
-        >
-          {Object.keys(outbreakData).map(
-            (disease) => (
-              <option
-                key={disease}
-                className="bg-gray-900"
-                value={disease}
+          <div className="stats-grid">
+            {stats.map((item, index) => (
+              <motion.div
+                className="glass-card stat-card"
+                key={index}
+                whileHover={{ scale: 1.04 }}
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
               >
-                {disease}
-              </option>
-            )
-          )}
-        </select>
+                <h3>{item.title}</h3>
 
-        {/* Region Dropdown */}
-        <select
-          value={selectedRegion}
-          onChange={(e) =>
-            setSelectedRegion(e.target.value)
-          }
-          className="bg-gray-900 text-white border border-white/10 px-4 py-3 rounded-2xl outline-none"
-        >
-          {Object.keys(
-            outbreakData[selectedDisease]
-          ).map((region) => (
-            <option
-              key={region}
-              className="bg-gray-900"
-              value={region}
-            >
-              {region}
-            </option>
-          ))}
-        </select>
-
-      </div>
-
-      {/* Top Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-
-        {/* Probability Card */}
-        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-6 shadow-2xl">
-
-          <p className="text-gray-400 text-sm">
-            Outbreak Probability
-          </p>
-
-          <h2 className="text-5xl font-bold mt-4">
-            {currentStats.probability}%
-          </h2>
-
-          <p
-            className={`mt-3 text-sm ${
-              growth >= 0
-                ? "text-green-400"
-                : "text-red-400"
-            }`}
-          >
-            {growth >= 0 ? "↑" : "↓"}{" "}
-            {Math.abs(growth).toFixed(1)}%
-            {" "}
-            from last week
-          </p>
-
-        </div>
-
-        {/* Cases Card */}
-        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-6 shadow-2xl">
-
-          <p className="text-gray-400 text-sm">
-            Predicted Cases
-          </p>
-
-          <h2 className="text-5xl font-bold mt-4">
-            {currentStats.predictedCases}
-          </h2>
-
-          <p className="text-yellow-400 mt-3 text-sm">
-            {selectedRegion}
-          </p>
-
-        </div>
-
-        {/* Disease Card */}
-        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-6 shadow-2xl">
-
-          <p className="text-gray-400 text-sm">
-            Active Disease
-          </p>
-
-          <h2 className="text-5xl font-bold mt-4">
-            {selectedDisease}
-          </h2>
-
-          <p className="text-red-400 mt-3 text-sm">
-            {currentStats.risk} Risk Detected
-          </p>
-
-        </div>
-
-      </div>
-
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {/* Chart */}
-        <div className="lg:col-span-2">
-
-          <OutbreakChart
-            selectedDisease={selectedDisease}
-            selectedRegion={selectedRegion}
-          />
-
-        </div>
-
-        {/* Region Details */}
-        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-6 shadow-2xl">
-
-          <h2 className="text-2xl font-semibold mb-6">
-            Region Details
-          </h2>
-
-          <div className="space-y-5">
-
-            <div className="bg-white/5 p-4 rounded-2xl">
-
-              <p className="text-gray-400 text-sm">
-                Region
-              </p>
-
-              <h3 className="text-xl font-semibold mt-1">
-                {selectedRegion}
-              </h3>
-
-            </div>
-
-            <div className="bg-white/5 p-4 rounded-2xl">
-
-              <p className="text-gray-400 text-sm">
-                Temperature
-              </p>
-
-              <h3 className="text-xl font-semibold mt-1">
-                {currentStats.temperature}°C
-              </h3>
-
-            </div>
-
-            <div className="bg-white/5 p-4 rounded-2xl">
-
-              <p className="text-gray-400 text-sm">
-                Humidity
-              </p>
-
-              <h3 className="text-xl font-semibold mt-1">
-                {currentStats.humidity}%
-              </h3>
-
-            </div>
-
+                <div
+                  className="stat-number"
+                  style={{ color: item.color }}
+                >
+                  <CountUp
+                    end={item.value}
+                    duration={2}
+                    separator=","
+                  />
+                  {item.suffix}
+                </div>
+              </motion.div>
+            ))}
           </div>
 
         </div>
 
-      </div>
+        <div className="right-panel">
 
+          <motion.div
+            className="glass-card"
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+          >
+            <h2>AI Insights</h2>
+
+            <div className="insight">
+              <FaExclamationTriangle />
+              Mumbai outbreak probability increased by 12%.
+            </div>
+
+            <div className="insight">
+              <FaHeartbeat />
+              Recovery stabilization detected in Pune.
+            </div>
+
+            <div className="insight">
+              <FaShieldVirus />
+              Containment effectiveness improving gradually.
+            </div>
+
+            <div className="insight">
+              <FaBiohazard />
+              Potential cluster expansion predicted within 7 days.
+            </div>
+          </motion.div>
+
+          <motion.div
+            className="glass-card radar-card"
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <h2>Risk Radar</h2>
+
+            <div className="radar">
+              <div className="radar-ring"></div>
+              <div className="radar-ring"></div>
+              <div className="radar-ring"></div>
+              <div className="radar-dot"></div>
+            </div>
+          </motion.div>
+
+        </div>
+
+      </div>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;

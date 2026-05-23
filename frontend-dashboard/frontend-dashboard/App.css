@@ -1,0 +1,280 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:'Inter',sans-serif;
+}
+
+body{
+  background:#020817;
+  color:white;
+  overflow-x:hidden;
+}
+
+.app{
+  min-height:100vh;
+  padding:30px;
+  position:relative;
+  overflow:hidden;
+}
+
+.background-grid{
+  position:absolute;
+  inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size:40px 40px;
+  z-index:0;
+}
+
+.topbar{
+  position:relative;
+  z-index:2;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:30px;
+}
+
+.topbar h1{
+  font-size:2.4rem;
+  font-weight:900;
+  letter-spacing:-2px;
+}
+
+.topbar p{
+  color:#94a3b8;
+  margin-top:8px;
+}
+
+.status-box{
+  background:rgba(0,255,170,0.08);
+  border:1px solid rgba(0,255,170,0.3);
+  color:#00ffaa;
+  padding:14px 22px;
+  border-radius:16px;
+  font-weight:700;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  backdrop-filter:blur(20px);
+}
+
+.pulse{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  background:#00ffaa;
+  animation:pulse 1s infinite;
+}
+
+@keyframes pulse{
+  0%{transform:scale(1);}
+  50%{transform:scale(1.8);}
+  100%{transform:scale(1);}
+}
+
+.main-layout{
+  position:relative;
+  z-index:2;
+  display:grid;
+  grid-template-columns:1fr 2fr 1fr;
+  gap:24px;
+}
+
+.glass-card{
+  background:rgba(255,255,255,0.05);
+  border:1px solid rgba(255,255,255,0.08);
+  backdrop-filter:blur(20px);
+  border-radius:28px;
+  padding:24px;
+  box-shadow:0 0 30px rgba(0,0,0,0.3);
+}
+
+.giant-card{
+  margin-bottom:24px;
+}
+
+.giant-card h2{
+  margin-bottom:20px;
+}
+
+.threat-circle{
+  width:140px;
+  height:140px;
+  border-radius:50%;
+  border:10px solid #ff5c7c;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  margin:20px auto;
+  font-size:2rem;
+  font-weight:800;
+  color:#ff5c7c;
+  box-shadow:0 0 40px rgba(255,92,124,0.5);
+}
+
+.feed{
+  margin-top:20px;
+}
+
+.feed-item{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:12px 0;
+  color:#cbd5e1;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+}
+
+.feed-item span{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:#00ffaa;
+}
+
+.graph-panel{
+  margin-bottom:24px;
+}
+
+.graph-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:24px;
+}
+
+.graph-header select{
+  background:#0f172a;
+  color:white;
+  border:none;
+  padding:10px 14px;
+  border-radius:12px;
+}
+
+.fake-graph{
+  height:320px;
+  border-radius:24px;
+  background:
+    linear-gradient(to top, rgba(0,255,170,0.15), transparent),
+    #081120;
+  position:relative;
+  overflow:hidden;
+}
+
+.graph-line{
+  position:absolute;
+  width:120%;
+  height:3px;
+  background:#00ffaa;
+  top:60%;
+  left:-10%;
+  transform:rotate(-8deg);
+  box-shadow:0 0 20px #00ffaa;
+}
+
+.stats-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:20px;
+}
+
+.stat-card h3{
+  color:#94a3b8;
+  margin-bottom:14px;
+}
+
+.stat-number{
+  font-size:2.5rem;
+  font-weight:800;
+}
+
+.insight{
+  display:flex;
+  gap:12px;
+  margin-top:20px;
+  color:#dbe4ee;
+  line-height:1.5;
+}
+
+.radar-card{
+  margin-top:24px;
+}
+
+.radar{
+  width:250px;
+  height:250px;
+  margin:20px auto;
+  border-radius:50%;
+  position:relative;
+  border:1px solid rgba(0,255,170,0.2);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+.radar-ring{
+  position:absolute;
+  border-radius:50%;
+  border:1px solid rgba(0,255,170,0.3);
+}
+
+.radar-ring:nth-child(1){
+  width:80px;
+  height:80px;
+}
+
+.radar-ring:nth-child(2){
+  width:150px;
+  height:150px;
+}
+
+.radar-ring:nth-child(3){
+  width:220px;
+  height:220px;
+}
+
+.radar-dot{
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  background:#00ffaa;
+  box-shadow:0 0 20px #00ffaa;
+  animation:radarPulse 1.5s infinite;
+}
+
+@keyframes radarPulse{
+  0%{transform:scale(1);}
+  50%{transform:scale(1.6);}
+  100%{transform:scale(1);}
+}
+
+@media(max-width:1100px){
+  .main-layout{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(max-width:768px){
+  .topbar{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:20px;
+  }
+
+  .topbar h1{
+    font-size:1.8rem;
+  }
+
+  .stats-grid{
+    grid-template-columns:1fr;
+  }
+
+  .app{
+    padding:18px;
+  }
+}

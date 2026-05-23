@@ -1077,6 +1077,142 @@ border 0.35s ease;
   color:#94a3b8 !important;
 }
 
+/* --- LOGIN SCREEN STYLES --- */
 
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  position: relative;
+  z-index: 2;
+}
 
+.login-card {
+  width: 100%;
+  max-width: 440px;
+  text-align: center;
+  padding: 40px;
+}
 
+.login-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: white;
+  padding: 16px 20px;
+  border-radius: 14px;
+  margin-bottom: 16px;
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.login-input:focus {
+  border: 1px solid #00ffaa;
+  box-shadow: 0 0 15px rgba(0, 255, 170, 0.2);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.login-input::placeholder {
+  color: #64748b;
+}
+
+.login-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #00ffaa, #38bdf8);
+  color: #020617;
+  padding: 16px;
+  border-radius: 14px;
+  border: none;
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease;
+  margin-top: 10px;
+}
+
+.login-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(0, 255, 170, 0.3);
+}
+
+.login-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.login-error {
+  background: rgba(251, 113, 133, 0.1);
+  border: 1px solid rgba(251, 113, 133, 0.3);
+  color: #fb7185;
+  padding: 14px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  animation: fadeSlide 0.3s ease;
+}
+
+.logout-btn {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.logout-btn:hover {
+  background: rgba(251, 113, 133, 0.15);
+  border-color: rgba(251, 113, 133, 0.4);
+  color: #fb7185;
+}
+
+.date-picker {
+  background: #0f172a;
+  color: white;
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 12px 18px;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  min-width: 200px;
+  transition: border 0.3s ease;
+}
+
+.date-picker::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
+.date-picker:focus {
+  border: 1px solid rgba(0,255,170,0.35);
+}
+
+.execute-btn {
+  background: linear-gradient(135deg, #ff00aa, #ff5c7c);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 14px;
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 0 15px rgba(255, 0, 170, 0.4);
+  transition: all 0.3s ease;
+}
+
+.execute-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 25px rgba(255, 0, 170, 0.6);
+}
+
+.execute-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}

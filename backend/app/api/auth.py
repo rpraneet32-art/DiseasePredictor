@@ -4,7 +4,7 @@ from flask import Blueprint, request, jsonify
 #request: Allows access of incoming HTTP request from frontend
 #jsonify: converts python dictionaries into proper JSON formats
 import jwt #PyJWT lib to create and read JSON web tokens
-from datetime import datetime #will use to set exact expiration time of token
+from datetime import datetime, timedelta #will use to set exact expiration time of token
 from functools import wraps #keeps original function's name and metadata preserved
 
 #Initial Setup
@@ -19,7 +19,7 @@ def token_required(f):#defines the decorator(wraps around f, running some code b
         if not token:
             return jsonify({'message':'Token is missing'}), 401
         try:
-            token=token.split([1]) #Cuts the string at space and grabs the actual token
+            token=token.split(" ")[1] #Cuts the string at space and grabs the actual token
             data=jwt.decode(token,SECRET_KEY, algorithms=["HS256"]) #takes the token checks signature against SECRET_KEY and expects HS256 encryption
         except Exception as e:
             return jsonify({'message':'Token is invalid!','error':str(e)}), 401
@@ -32,6 +32,6 @@ def login():
     auth=request.get_json() #gets the json body sent from frontend
     if auth and auth.get('username') == 'admin' and auth.get('password') == 'Project_no_10':
         #if credentials match it starts creating JWT
-        token=jwt.encode({'user': auth.get('username'), 'exp':datetime.utcnow() + datetime.timedelta(hours=12)}, SECRET_KEY, algorithm='HS256')
+        token=jwt.encode({'user': auth.get('username'), 'exp':datetime.utcnow() +  timedelta(hours=12)}, SECRET_KEY, algorithm='HS256')
         return jsonify({'token':token})
     return jsonify({'message':'Could not verify'}),401

@@ -1,5 +1,4 @@
 import "./App.css";
-
 import {
   ResponsiveContainer,
   AreaChart,
@@ -13,6 +12,9 @@ import {
 import { diseaseData } from "./data/dummyData";
 
 import { useState } from "react";
+import Select from "react-select";
+
+import { Download } from "lucide-react";
 
 function App() {
 
@@ -46,11 +48,9 @@ function App() {
       item.disease === selectedDisease &&
       item.region === selectedRegion
   );
-
-
-
   const latestData =
-    filteredData[filteredData.length - 1];
+  filteredData[filteredData.length - 1] || {};  
+
 
 
 
@@ -83,7 +83,88 @@ function App() {
 
 const [sortOrder, setSortOrder]
 = useState("high");
+const downloadDataset = () => {
 
+  const jsonData =
+    JSON.stringify(
+      filteredData,
+      null,
+      2
+    );
+
+  const blob =
+    new Blob(
+      [jsonData],
+      { type:"application/json" }
+    );
+
+  const url =
+    URL.createObjectURL(blob);
+
+  const link =
+    document.createElement("a");
+
+  link.href = url;
+
+  link.download =
+    `${selectedDisease}-${selectedRegion}-dataset.json`;
+
+  link.click();
+
+};
+const customSelectStyles = {
+
+  control:(provided)=>({
+    ...provided,
+    background:"#0f172a",
+    border:"1px solid rgba(255,255,255,0.08)",
+    borderRadius:"16px",
+    minHeight:"52px",
+    boxShadow:"none",
+    color:"white",
+  }),
+
+  menu:(provided)=>({
+    ...provided,
+    background:"#0f172a",
+    borderRadius:"16px",
+    overflow:"hidden",
+    zIndex:9999,
+  }),
+
+  menuList:(provided)=>({
+    ...provided,
+    background:"#0f172a",
+    maxHeight:"240px",
+  }),
+
+  option:(provided,state)=>({
+    ...provided,
+
+    background:state.isFocused
+      ? "rgba(0,255,170,0.12)"
+      : "#0f172a",
+
+    color:"white",
+    cursor:"pointer",
+  }),
+
+  singleValue:(provided)=>({
+    ...provided,
+    color:"white",
+  }),
+
+  input:(provided)=>({
+    ...provided,
+    color:"white",
+  }),
+
+  placeholder:(provided)=>({
+    ...provided,
+    color:"#94a3b8",
+  }),
+
+};
   return (
 
     <div className="app">
@@ -121,48 +202,100 @@ const [sortOrder, setSortOrder]
 
       <div className="topbar">
 
-        <select
-          className="disease-select"
+        <Select
+  className="search-select"
+  classNamePrefix="search"
+  maxMenuHeight={240}
 
-          value={selectedDisease}
+  styles={{
 
-          onChange={(e) => {
+    control:(provided)=>({
+      ...provided,
+      background:"#0f172a",
+      border:"1px solid rgba(255,255,255,0.08)",
+      borderRadius:"16px",
+      minHeight:"52px",
+      boxShadow:"none",
+      color:"white",
+    }),
 
-            const disease = e.target.value;
+    menu:(provided)=>({
+      ...provided,
+      background:"#0f172a",
+      borderRadius:"16px",
+      overflow:"hidden",
+      zIndex:9999,
+    }),
 
-            setSelectedDisease(disease);
+    menuList:(provided)=>({
+      ...provided,
+      background:"#0f172a",
+      maxHeight:"240px",
+    }),
 
-            const newRegions =
-              diseaseData
-                .filter(
-                  item =>
-                    item.disease === disease
-                )
-                .map(
-                  item => item.region
-                );
+    option:(provided,state)=>({
+      ...provided,
+      background:state.isFocused
+        ? "rgba(0,255,170,0.12)"
+        : "#0f172a",
 
-            setSelectedRegion(newRegions[0]);
+      color:"white",
+      cursor:"pointer",
+    }),
 
-          }}
-        >
+    singleValue:(provided)=>({
+      ...provided,
+      color:"white",
+    }),
 
-          {[...new Set(
-            diseaseData.map(
-              item => item.disease
-            )
-          )].map(disease => (
+    input:(provided)=>({
+      ...provided,
+      color:"white",
+    }),
 
-            <option
-              key={disease}
-              value={disease}
-            >
-              {disease}
-            </option>
+    placeholder:(provided)=>({
+      ...provided,
+      color:"#94a3b8",
+    }),
 
-          ))}
+  }}
 
-        </select>
+  options={
+    [...new Set(
+      diseaseData.map(
+        item => item.disease
+      )
+    )].map(disease => ({
+      value:disease,
+      label:disease
+    }))
+  }
+
+  value={{
+    value:selectedDisease,
+    label:selectedDisease
+  }}
+
+  onChange={(selected)=>{
+
+    setSelectedDisease(selected.value);
+
+    const newRegions =
+      diseaseData
+        .filter(
+          item =>
+            item.disease === selected.value
+        )
+        .map(
+          item => item.region
+        );
+
+    setSelectedRegion(newRegions[0]);
+
+  }}
+
+  placeholder="Search disease..."
+/>
 
 
 
@@ -173,6 +306,16 @@ const [sortOrder, setSortOrder]
           <p>
             AI-powered outbreak intelligence dashboard
           </p>
+          <button
+  className="download-btn"
+  onClick={downloadDataset}
+>
+
+  <Download size={18} />
+
+  Download Dataset
+
+</button>
 
         </div>
 
@@ -254,7 +397,9 @@ const [sortOrder, setSortOrder]
 
             <div className="risk-item">
               <span>Humidity</span>
-              <strong>{latestData.humidity}%</strong>
+              <strong>
+  {latestData.humidity.toFixed(1)}%
+</strong>
             </div>
 
           </div>
@@ -274,32 +419,40 @@ const [sortOrder, setSortOrder]
 
     <h3>Regional Comparison</h3>
 
-    <select
-      className="region-select"
+    <Select
 
-      style={{
-        marginBottom:0,
-        padding:"8px 12px",
-        fontSize:"0.9rem"
-      }}
+  className="search-select"
 
-      value={sortOrder}
+  classNamePrefix="search"
 
-      onChange={(e)=>
-        setSortOrder(e.target.value)
-      }
-    >
+  styles={customSelectStyles}
 
-      <option value="high">
-        High → Low
-      </option>
+  isSearchable={false}
 
-      <option value="low">
-        Low → High
-      </option>
+  options={[
+    {
+      value:"high",
+      label:"High → Low"
+    },
+    {
+      value:"low",
+      label:"Low → High"
+    }
+  ]}
 
-    </select>
+  value={{
+    value:sortOrder,
+    label:
+      sortOrder === "high"
+        ? "High → Low"
+        : "Low → High"
+  }}
 
+  onChange={(selected)=>
+    setSortOrder(selected.value)
+  }
+
+/>
   </div>
 
 
@@ -382,231 +535,222 @@ const [sortOrder, setSortOrder]
 
         {/* CENTER PANEL */}
 
+<div className="glass-card">
 
+  <h2>Outbreak Analytics</h2>
 
-        <div className="glass-card">
+  <Select
 
-          <h2>Outbreak Analytics</h2>
+    className="search-select"
 
+    classNamePrefix="search"
 
+    styles={customSelectStyles}
 
-          <select
-            className="region-select"
+    options={
+      diseaseRegions.map(region => ({
+        value:region,
+        label:region
+      }))
+    }
 
-            value={selectedRegion}
+    value={{
+      value:selectedRegion,
+      label:selectedRegion
+    }}
 
-            onChange={(e) =>
-              setSelectedRegion(e.target.value)
-            }
+    onChange={(selected)=>
+      setSelectedRegion(
+        selected.value
+      )
+    }
+
+    placeholder="Search region..."
+
+  />
+
+  <div className="real-chart">
+
+    <ResponsiveContainer width="100%" height={320}>
+
+      <AreaChart data={data}>
+
+        <defs>
+
+          <linearGradient
+            id="casesGradient"
+            x1="0"
+            y1="0"
+            x2="0"
+            y2="1"
           >
 
-            {diseaseRegions.map(region => (
+            <stop
+              offset="5%"
+              stopColor={
+                riskLevel === "LOW"
+                  ? "#00ffaa"
+                  : riskLevel === "MODERATE"
+                  ? "#facc15"
+                  : riskLevel === "HIGH"
+                  ? "#fb7185"
+                  : "#ff00aa"
+              }
+              stopOpacity={0.5}
+            />
+
+            <stop
+              offset="95%"
+              stopColor={
+                riskLevel === "LOW"
+                  ? "#00ffaa"
+                  : riskLevel === "MODERATE"
+                  ? "#facc15"
+                  : riskLevel === "HIGH"
+                  ? "#fb7185"
+                  : "#ff00aa"
+              }
+              stopOpacity={0}
+            />
+
+          </linearGradient>
+
+        </defs>
+
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke="rgba(255,255,255,0.08)"
+        />
+
+        <XAxis
+          dataKey="day"
+          stroke="#94a3b8"
+        />
+
+        <YAxis
+          stroke="#94a3b8"
+          domain={[
+            0,
+            Math.max(
+              ...data.map(
+                item => item.cases
+              ),
+              50
+            ) + 20
+          ]}
+        />
+
+        <Tooltip
+          contentStyle={{
+            background:"#081120",
+            border:
+              "1px solid rgba(255,255,255,0.08)",
+            borderRadius:"14px",
+            color:"white",
+          }}
+        />
+
+        <Area
+          type="monotone"
+          dataKey="cases"
+          stroke={
+            riskLevel === "LOW"
+              ? "#00ffaa"
+              : riskLevel === "MODERATE"
+              ? "#facc15"
+              : riskLevel === "HIGH"
+              ? "#fb7185"
+              : "#ff00aa"
+          }
+          strokeWidth={4}
+          fill="url(#casesGradient)"
+        />
+
+      </AreaChart>
+
+    </ResponsiveContainer>
+
+  </div>
+
+  <div className="metrics-grid">
+
+    <div className="metric-card">
+      <h3>Avg Temperature</h3>
+
+      <p>
+        {latestData?.temperature?.toFixed(1) || "0.0"}°C
+      </p>
+    </div>
+
+    <div className="metric-card">
+      <h3>Avg Humidity</h3>
+
+      <p>
+        {latestData?.humidity?.toFixed(1) || "0.0"}%
+      </p>
+    </div>
 
-              <option
-                key={region}
-                value={region}
-              >
-                {region}
-              </option>
+    <div className="metric-card">
+      <h3>Search Trend</h3>
 
-            ))}
+      <p>
+        {latestData?.searchTrend || 0}
+      </p>
+    </div>
 
-          </select>
+    <div className="metric-card">
+      <h3>Weekly Cases</h3>
 
+      <p>
+        {latestData?.reportedCases || 0}
+      </p>
+    </div>
 
+  </div>
 
-          <div className="real-chart">
+  <div className="forecast-panel">
 
-            <ResponsiveContainer width="100%" height={320}>
+    <div className="forecast-header">
+      AI Forecast Projection
+    </div>
 
-              <AreaChart data={data}>
+    <div className="forecast-stats">
 
-                <defs>
+      <div className="forecast-box">
+        <span>24H</span>
 
-                  <linearGradient
-                    id="casesGradient"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
+        <strong>
+          +{Math.floor(
+            (latestData?.reportedCases || 0) * 0.08
+          )}
+        </strong>
+      </div>
 
-                    <stop
-                      offset="5%"
+      <div className="forecast-box">
+        <span>3 DAYS</span>
 
-                      stopColor={
-                        riskLevel === "LOW"
-                          ? "#00ffaa"
-                          : riskLevel === "MODERATE"
-                          ? "#facc15"
-                          : riskLevel === "HIGH"
-                          ? "#fb7185"
-                          : "#ff00aa"
-                      }
+        <strong>
+          +{Math.floor(
+            (latestData?.reportedCases || 0) * 0.22
+          )}
+        </strong>
+      </div>
 
-                      stopOpacity={0.5}
-                    />
+      <div className="forecast-box">
+        <span>7 DAYS</span>
 
-                    <stop
-                      offset="95%"
+        <strong>
+          +{Math.floor(
+            (latestData?.reportedCases || 0) * 0.45
+          )}
+        </strong>
+      </div>
 
-                      stopColor={
-                        riskLevel === "LOW"
-                          ? "#00ffaa"
-                          : riskLevel === "MODERATE"
-                          ? "#facc15"
-                          : riskLevel === "HIGH"
-                          ? "#fb7185"
-                          : "#ff00aa"
-                      }
+    </div>
 
-                      stopOpacity={0}
-                    />
+  </div>
 
-                  </linearGradient>
-
-                </defs>
-
-
-
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="rgba(255,255,255,0.08)"
-                />
-
-
-
-                <XAxis
-                  dataKey="day"
-                  stroke="#94a3b8"
-                />
-
-
-
-                <YAxis
-                  stroke="#94a3b8"
-                />
-
-
-
-                <Tooltip
-                  contentStyle={{
-                    background: "#081120",
-                    border:
-                      "1px solid rgba(255,255,255,0.08)",
-                    borderRadius: "14px",
-                    color: "white",
-                  }}
-                />
-
-
-
-                <Area
-                  type="monotone"
-
-                  dataKey="cases"
-
-                  stroke={
-                    riskLevel === "LOW"
-                      ? "#00ffaa"
-                      : riskLevel === "MODERATE"
-                      ? "#facc15"
-                      : riskLevel === "HIGH"
-                      ? "#fb7185"
-                      : "#ff00aa"
-                  }
-
-                  strokeWidth={4}
-
-                  fill="url(#casesGradient)"
-                />
-
-              </AreaChart>
-
-            </ResponsiveContainer>
-
-          </div>
-
-
-
-          <div className="metrics-grid">
-
-            <div className="metric-card">
-              <h3>Temperature</h3>
-              <p>{latestData.temperature}°C</p>
-            </div>
-
-            <div className="metric-card">
-              <h3>Humidity</h3>
-              <p>{latestData.humidity}%</p>
-            </div>
-
-            <div className="metric-card">
-              <h3>Search Trend</h3>
-              <p>{latestData.searchTrend}</p>
-            </div>
-
-            <div className="metric-card">
-              <h3>Weekly Cases</h3>
-              <p>{latestData.reportedCases}</p>
-            </div>
-
-          </div>
-
-
-
-          <div className="forecast-panel">
-
-            <div className="forecast-header">
-              AI Forecast Projection
-            </div>
-
-
-
-            <div className="forecast-stats">
-
-              <div className="forecast-box">
-                <span>24H</span>
-
-                <strong>
-                  +{Math.floor(
-                    latestData.reportedCases * 0.08
-                  )}
-                </strong>
-              </div>
-
-
-
-              <div className="forecast-box">
-                <span>3 DAYS</span>
-
-                <strong>
-                  +{Math.floor(
-                    latestData.reportedCases * 0.22
-                  )}
-                </strong>
-              </div>
-
-
-
-              <div className="forecast-box">
-                <span>7 DAYS</span>
-
-                <strong>
-                  +{Math.floor(
-                    latestData.reportedCases * 0.45
-                  )}
-                </strong>
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-
-
-
+</div>
         {/* RIGHT PANEL */}
 
 

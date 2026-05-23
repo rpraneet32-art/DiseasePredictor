@@ -882,3 +882,201 @@ border 0.35s ease;
   outline:none;
   cursor:pointer;
 }
+
+
+
+
+/* OPTIONS */
+
+
+
+.download-btn{
+
+  margin-top:16px;
+
+  display:flex;
+  align-items:center;
+  gap:10px;
+
+  padding:12px 18px;
+
+  border:none;
+
+  border-radius:14px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #00ffaa,
+      #38bdf8
+    );
+
+  color:#020617;
+
+  font-weight:700;
+
+  cursor:pointer;
+
+  transition:
+    transform 0.3s ease,
+    opacity 0.3s ease;
+}
+
+.download-btn:hover{
+
+  transform:translateY(-3px);
+
+  opacity:0.9;
+}
+.search-select{
+
+  min-width:240px;
+
+  position:relative;
+
+  z-index:100;
+}
+
+
+
+/* MAIN BOX */
+
+.search__control{
+
+  background:#0f172a !important;
+
+  border:
+    1px solid rgba(255,255,255,0.08) !important;
+
+  border-radius:16px !important;
+
+  min-height:52px !important;
+
+  box-shadow:none !important;
+
+  cursor:pointer !important;
+}
+
+.search__control:hover{
+
+  border:
+    1px solid rgba(0,255,170,0.35) !important;
+}
+
+
+
+/* TEXT */
+
+.search__single-value{
+
+  color:white !important;
+
+  font-weight:600;
+}
+
+.search__placeholder{
+
+  color:#94a3b8 !important;
+}
+
+
+
+/* INPUT */
+
+.search__input-container{
+
+  color:white !important;
+}
+
+
+
+/* DROPDOWN */
+
+.search__menu{
+
+  background:#0f172a !important;
+
+  border-radius:16px !important;
+
+  overflow:hidden !important;
+
+  border:
+    1px solid rgba(255,255,255,0.08) !important;
+
+  z-index:9999 !important;
+}
+
+
+
+/* OPTIONS */
+
+.search__option{
+
+  background:#0f172a !important;
+
+  color:white !important;
+
+  padding:14px !important;
+
+  cursor:pointer !important;
+}
+
+.search__option:hover{
+
+  background:
+    rgba(0,255,170,0.15) !important;
+}
+
+.search__option--is-selected{
+
+  background:
+    rgba(0,255,170,0.22) !important;
+
+  color:#00ffaa !important;
+}
+
+
+
+/* ICONS */
+
+.search__indicator{
+
+  color:#94a3b8 !important;
+}
+
+.search__indicator:hover{
+
+  color:#00ffaa !important;
+}
+
+.search__indicator-separator{
+
+  background:
+    rgba(255,255,255,0.08) !important;
+}
+
+
+
+/* LIMIT HEIGHT */
+
+.search__menu-list{
+
+  max-height:240px !important;
+
+  background:#0f172a !important;
+}
+
+
+
+/* NO RESULTS */
+
+.search__no-options{
+
+  background:#0f172a !important;
+
+  color:#94a3b8 !important;
+}
+
+
+
+

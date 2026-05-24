@@ -142,7 +142,7 @@ const customSelectStyles = {
     ...provided,
 
     background:state.isFocused
-      ? "rgba(0,255,170,0.12)"
+      ? "rgba(59,130,246,0.15)"
       : "#0f172a",
 
     color:"white",
@@ -168,38 +168,6 @@ const customSelectStyles = {
   return (
 
     <div className="app">
-
-      <div className="ticker-wrap">
-
-        <div className="ticker">
-
-          <span>
-            ⚠ AI ALERT:
-            Live disease surveillance active •
-            Environmental risk patterns detected •
-            AI outbreak forecasting operational •
-            Regional health monitoring synchronized •
-          </span>
-
-        </div>
-
-      </div>
-
-
-
-      <div className="particles">
-
-        <span></span>
-        <span></span>
-        <span></span>
-        <span></span>
-        <span></span>
-        <span></span>
-
-      </div>
-
-
-
       <div className="topbar">
 
         <Select
@@ -236,8 +204,8 @@ const customSelectStyles = {
     option:(provided,state)=>({
       ...provided,
       background:state.isFocused
-        ? "rgba(0,255,170,0.12)"
-        : "#0f172a",
+  ? "rgba(59,130,246,0.12)"
+  : "#111827",
 
       color:"white",
       cursor:"pointer",
@@ -299,7 +267,7 @@ const customSelectStyles = {
 
 
 
-        <div>
+          <div className="topbar-center">
 
           <h1>Disease Detection Dashboard</h1>
 
@@ -321,12 +289,20 @@ const customSelectStyles = {
 
 
 
-        <div
-          className={`status-box ${riskLevel.toLowerCase()}`}
-        >
-          {riskLevel} RISK • LIVE MONITORING
-        </div>
+        <div className="heatmap-shortcut">
 
+  <div>
+    <h3>Regional Heatmap</h3>
+    <p>
+      Geographic outbreak visualization
+    </p>
+  </div>
+
+  <button className="heatmap-btn">
+    Open
+  </button>
+
+</div>
       </div>
 
 
@@ -343,11 +319,9 @@ const customSelectStyles = {
 
           <h2>Threat Level</h2>
 
-          <div
-            className={`threat-circle ${riskLevel.toLowerCase()}`}
-          >
-            <span>{riskLevel}</span>
-          </div>
+          <div className={`risk-badge ${riskLevel.toLowerCase()}`}>
+  {riskLevel} RISK
+</div>
 
 
 
@@ -589,12 +563,12 @@ const customSelectStyles = {
               offset="5%"
               stopColor={
                 riskLevel === "LOW"
-                  ? "#00ffaa"
+                  ? "#3b82f6"
                   : riskLevel === "MODERATE"
-                  ? "#facc15"
+                  ? "#3b82f6"
                   : riskLevel === "HIGH"
-                  ? "#fb7185"
-                  : "#ff00aa"
+                  ? "#3b82f6"
+                  : "#3b82f6"
               }
               stopOpacity={0.5}
             />
@@ -603,12 +577,12 @@ const customSelectStyles = {
               offset="95%"
               stopColor={
                 riskLevel === "LOW"
-                  ? "#00ffaa"
+                  ? "#3b82f6"
                   : riskLevel === "MODERATE"
-                  ? "#facc15"
+                  ? "#3b82f6"
                   : riskLevel === "HIGH"
-                  ? "#fb7185"
-                  : "#ff00aa"
+                  ? "#3b82f6"
+                  : "#3b82f6"
               }
               stopOpacity={0}
             />
@@ -655,14 +629,14 @@ const customSelectStyles = {
           dataKey="cases"
           stroke={
             riskLevel === "LOW"
-              ? "#00ffaa"
+              ? "#3b82f6"
               : riskLevel === "MODERATE"
-              ? "#facc15"
+              ? "#3b82f6"
               : riskLevel === "HIGH"
-              ? "#fb7185"
-              : "#ff00aa"
+              ? "#3b82f6"
+              : "#3b82f6"
           }
-          strokeWidth={4}
+          strokeWidth={2}
           fill="url(#casesGradient)"
         />
 

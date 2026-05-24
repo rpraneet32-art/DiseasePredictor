@@ -12,6 +12,11 @@ import {
 import { diseaseData } from "./data/dummyData";
 
 import { useState } from "react";
+const [visibleWeeks, setVisibleWeeks]
+= useState(8);
+
+const [startIndex, setStartIndex]
+= useState(0);
 import Select from "react-select";
 
 import { Download } from "lucide-react";
@@ -74,11 +79,17 @@ function App() {
 
 
 
-  const data = filteredData.map(
-    item => ({
-      day: `W${item.week}`,
-      cases: item.reportedCases
-    })
+const chartData = filteredData.map(
+  item => ({
+    day: `W${item.week}`,
+    cases: item.reportedCases
+  })
+);
+
+const data =
+  chartData.slice(
+    startIndex,
+    startIndex + visibleWeeks
   );
 
 const [sortOrder, setSortOrder]
@@ -542,7 +553,52 @@ const customSelectStyles = {
     placeholder="Search region..."
 
   />
+<div className="chart-controls">
 
+  <button
+    onClick={() =>
+      setStartIndex(
+        Math.max(startIndex - visibleWeeks, 0)
+      )
+    }
+  >
+    ← Prev
+  </button>
+
+  <button
+    onClick={() =>
+      setStartIndex(
+        Math.min(
+          startIndex + visibleWeeks,
+          chartData.length - visibleWeeks
+        )
+      )
+    }
+  >
+    Next →
+  </button>
+
+  <button
+    onClick={() =>
+      setVisibleWeeks(
+        Math.max(4, visibleWeeks - 2)
+      )
+    }
+  >
+    Zoom In
+  </button>
+
+  <button
+    onClick={() =>
+      setVisibleWeeks(
+        Math.min(20, visibleWeeks + 2)
+      )
+    }
+  >
+    Zoom Out
+  </button>
+
+</div>
   <div className="real-chart">
 
     <ResponsiveContainer width="100%" height={320}>

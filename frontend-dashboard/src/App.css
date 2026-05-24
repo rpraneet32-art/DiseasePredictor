@@ -107,8 +107,6 @@ body{
 
   border-radius:18px;
 
-  backdrop-filter:blur(14px);
-
   box-shadow:
     0 8px 24px rgba(0,0,0,0.22);
 }
@@ -223,21 +221,26 @@ body{
 }
 
 .glass-card{
-  background:rgba(17,24,39,0.72);
-  border:1px solid rgba(255,255,255,0.06);
-  border-radius:18px;
+  background:#111827;
+
+  border:1px solid rgba(255,255,255,0.05);
+
+  border-radius:16px;
+
   padding:24px;
 
-  backdrop-filter:blur(14px);
-  -webkit-backdrop-filter:blur(14px);
+  box-shadow:
+    0 4px 14px rgba(0,0,0,0.18);
 
-  transition:all 0.25s ease;
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease;
 }
 .glass-card:hover{
-  transform:translateY(-2px);
+  border-color:
+    rgba(255,255,255,0.08);
 
-  border-color:rgba(255,255,255,0.08);
-
+  transform:translateY(-1px);
 }
 
 .glass-card h2{
@@ -314,7 +317,7 @@ body{
 
 .real-chart{
   height:320px;
-  border-radius:24px;
+  border-radius:16px;
   overflow:hidden;
   background:
     radial-gradient(circle at top left,
@@ -591,7 +594,7 @@ body{
 
   padding:22px;
 
-  border-radius:22px;
+  border-radius:16px;
 
   background:
     rgba(255,255,255,0.04);
@@ -1012,4 +1015,37 @@ body{
 .download-btn svg{
   width:18px;
   height:18px;
+}
+.chart-controls{
+  display:flex;
+  gap:12px;
+  margin-bottom:18px;
+  flex-wrap:wrap;
+}
+
+.chart-controls button{
+
+  background:#1e293b;
+
+  color:#e2e8f0;
+
+  border:1px solid rgba(255,255,255,0.08);
+
+  border-radius:10px;
+
+  padding:10px 16px;
+
+  font-size:14px;
+  font-weight:500;
+
+  cursor:pointer;
+
+  transition:0.2s ease;
+}
+
+.chart-controls button:hover{
+
+  background:#334155;
+
+  transform:translateY(-1px);
 }

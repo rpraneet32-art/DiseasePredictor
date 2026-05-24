@@ -8,23 +8,20 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
-
 import { diseaseData } from "./data/dummyData";
-
 import { useState } from "react";
-const [visibleWeeks, setVisibleWeeks]
-= useState(8);
-
-const [startIndex, setStartIndex]
-= useState(0);
 import Select from "react-select";
-
 import { Download } from "lucide-react";
 
 function App() {
 
   const [selectedDisease, setSelectedDisease]
   = useState("Dengue");
+  const [visibleWeeks, setVisibleWeeks]
+= useState(8);
+
+const [startIndex, setStartIndex]
+= useState(0);
 
   const diseaseRegions = [
 
@@ -44,7 +41,7 @@ function App() {
   ];
 
   const [selectedRegion, setSelectedRegion]
-  = useState("Mumbai");
+= useState(diseaseRegions[0] || "");
 
 
 
@@ -53,6 +50,9 @@ function App() {
       item.disease === selectedDisease &&
       item.region === selectedRegion
   );
+  if (!filteredData.length) {
+  return <div>No data available</div>;
+}
   const latestData =
   filteredData[filteredData.length - 1] || {};  
 

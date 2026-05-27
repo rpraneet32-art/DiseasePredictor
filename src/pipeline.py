@@ -15,12 +15,14 @@ from db_config import get_database_client
 os.makedirs('logs', exist_ok=True)
 log_filename = f"logs/pipeline_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
 
+import sys
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
-        logging.FileHandler(log_filename),
-        logging.StreamHandler()
+        logging.FileHandler(log_filename, encoding='utf-8'),
+        logging.StreamHandler(sys.stdout)
     ]
 )
 logger = logging.getLogger(__name__)

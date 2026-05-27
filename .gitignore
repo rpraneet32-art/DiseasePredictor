@@ -1,0 +1,21 @@
+# Environments
+.venv/
+env/
+venv/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Machine Learning Artifacts
+# (Teammates should generate their own model by running train_model.py)
+backend/models/*.pkl
+
+# Frontend & Dependencies
+node_modules/
+.env
+
+# OS Files
+.DS_Store
+Thumbs.db

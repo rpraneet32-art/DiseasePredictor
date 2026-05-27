@@ -12,7 +12,8 @@ import { diseaseData } from "./data/dummyData";
 import { useState } from "react";
 import Select from "react-select";
 import { Download } from "lucide-react";
-
+import "leaflet/dist/leaflet.css";
+import Heatmap from "./components/Heatmap";
 function App() {
 
   const [selectedDisease, setSelectedDisease]
@@ -76,8 +77,49 @@ const [startIndex, setStartIndex]
       : totalCases > 120
       ? "MODERATE"
       : "LOW";
+  
+  const firstWeekCases =
+  filteredData[0]?.reportedCases || 0;
 
+const latestWeekCases =
+  filteredData[
+    filteredData.length - 1
+  ]?.reportedCases || 0;
 
+const growthPercent =
+  firstWeekCases
+    ? Math.round(
+        ((latestWeekCases - firstWeekCases)
+          / firstWeekCases) * 100
+      )
+    : 0;
+
+let observationText = "";
+
+if(growthPercent >= 40){
+
+  observationText =
+    `Sharp increase detected in ${selectedDisease} activity across ${selectedRegion}.`;
+
+}
+else if(growthPercent >= 15){
+
+  observationText =
+    `${selectedDisease} cases are gradually rising in ${selectedRegion}.`;
+
+}
+else if(growthPercent <= -15){
+
+  observationText =
+    `${selectedDisease} spread appears to be declining in ${selectedRegion}.`;
+
+}
+else{
+
+  observationText =
+    `${selectedDisease} activity remains relatively stable in ${selectedRegion}.`;
+
+}
 
 const chartData = filteredData.map(
   item => ({
@@ -174,8 +216,11 @@ const customSelectStyles = {
     ...provided,
     color:"#94a3b8",
   }),
+  
 
 };
+const [showHeatmap, setShowHeatmap]
+= useState(false);
   return (
 
     <div className="app">
@@ -275,7 +320,52 @@ const customSelectStyles = {
 
   placeholder="Search disease..."
 />
+{
+  showHeatmap && (
 
+    <div className="heatmap-modal">
+
+      <div className="heatmap-container">
+
+        <div className="heatmap-topbar">
+
+          <h2>Regional Heatmap</h2>
+
+          <button
+            onClick={() => setShowHeatmap(false)}
+            className="close-map-btn"
+          >
+            ✕
+          </button>
+
+        </div>
+
+        <Heatmap />
+        {
+  showHeatmap && (
+
+    <div className="heatmap-overlay">
+
+      <button
+        className="close-map-btn"
+        onClick={() => setShowHeatmap(false)}
+      >
+        ✕ Close Map
+      </button>
+
+      <Heatmap />
+
+    </div>
+
+  )
+}
+
+      </div>
+
+    </div>
+
+  )
+}
 
 
           <div className="topbar-center">
@@ -309,9 +399,12 @@ const customSelectStyles = {
     </p>
   </div>
 
-  <button className="heatmap-btn">
-    Open
-  </button>
+  <button
+  className="heatmap-btn"
+  onClick={() => setShowHeatmap(true)}
+>
+  Open
+</button>
 
 </div>
       </div>
@@ -906,6 +999,15 @@ const customSelectStyles = {
               : "Search behavior remains within normal thresholds."}
 
           </div>
+          <div className="observation-card">
+
+  <h3>Key Observation</h3>
+
+  <div className="observation-pill">
+    {observationText}
+  </div>
+
+</div>
 
         </div>
 

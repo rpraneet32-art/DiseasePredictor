@@ -29,7 +29,7 @@ function HeatLayer({ heatData }) {
 
         point[0],
         point[1],
-        point[2] / 120
+        point[2]
 
       ]);
 
@@ -38,8 +38,9 @@ function HeatLayer({ heatData }) {
       formattedData,
 
       {
-        radius:50,
-        blur:35,
+        radius:80,
+        blur:60,
+        minOpacity:0.5,
         maxZoom:10,
 
         gradient:{
@@ -80,9 +81,11 @@ function Heatmap() {
       .then(res => res.json())
       .then(data => {
 
-        setHeatData(data);
+  console.log(data);
 
-      })
+  setHeatData(data);
+
+})
       .catch(error => {
 
         console.error(error);
@@ -90,37 +93,37 @@ function Heatmap() {
       });
 
   }, []);
-
   return (
 
-    <div
+ <div
+  style={{
+    height:"100vh",
+    width:"100%"
+  }}
+>
+
+    
+
+    <MapContainer
+      center={[20.5937,78.9629]}
+      zoom={5}
       style={{
         height:"100vh",
-        width:"100%",
+        width:"100%"
       }}
     >
 
-      <MapContainer
-        center={[20.5937,78.9629]}
-        zoom={5}
-        style={{
-          height:"100%",
-          width:"100%"
-        }}
-      >
+      <TileLayer
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
 
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+      <HeatLayer heatData={heatData} />
 
-        <HeatLayer heatData={heatData} />
+    </MapContainer>
 
-      </MapContainer>
+  </div>
 
-    </div>
-
-  );
-
+);
 }
 
 export default Heatmap;

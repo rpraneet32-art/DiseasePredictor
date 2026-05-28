@@ -37,27 +37,38 @@ def predict_outbreak():
         target_region=req_data.get('region')
         date_str=req_data.get('date')
         # This extracts the exact state and date user selects in th UI
+        target_disease = req_data.get('disease', 'Dengue')
         if not target_region or not date_str:
             return jsonify({"status":"error", "message":"Missing region or date"}), 400
         target_date=datetime.strptime(date_str,"%Y-%m-%d")
-        record =collection.find_one({
-            'Region':target_region,
-            'Year':target_date.isocalendar().year,
-            'Week_Num':target_date.isocalendar().week #converts the specific day into exact week number so it can match data in MongoDB
+        record = collection.find_one({
+            'Region': target_region,
+            'Year': target_date.isocalendar().year,
+            'Week_Num': target_date.isocalendar().week 
+            # Note: If your DB has a Disease_Name column, uncomment the line below:
+            # 'Disease_Name': target_disease
         })# pipeline.py groups the data by Week Number 
         if not record:
             return jsonify({'status':'error','message':'No data found for this period.'}), 404
         #scikit-learn model expects a 2D array for inputs. The below features formats the data into exactly how RandomForest expects it
-        features = [[record.get('Avg_Temperature_2m',0),
-            record.get('Avg_Relative_Humidity_2m',0),
-            record.get('Search_Trend_Score',0)
-            ]]
-        prediction=model.predict(features)[0]# Returns the actual label(High, Medium or Low)
+        features = [[
+            record.get('Avg_Temperature_2m', 0),
+            record.get('Avg_Relative_Humidity_2m', 0),
+            record.get('Search_Trend_Score', 0),
+            record.get('Rainfall', 0),            # New Lag Feature
+            record.get('Cases_Last_Week', 0),     # New Lag Feature
+            record.get('Rainfall_Lag_1', 0),      # New Lag Feature
+            record.get('Temp_Humidity_Index', 0)  # New Engineered Feature
+        ]]
+        prediction_val=model.predict(features)[0]# Returns the actual label(High, Medium or Low)
+        risk_map = {0: 'LOW', 1: 'MEDIUM', 2: 'HIGH'}
+        prediction = risk_map.get(prediction_val, 'UNKNOWN')
         max_prob=round(max(model.predict_proba(features)[0])*100, 1) # This function returns array of probabilities and use max() to grab the highest confidence and round off to 1 decimal place
         # Now packing the database and ML's prediction into a clean dictionary to prepare it to send to the frontend
         result_data={
             'region':target_region,
             'date':date_str,
+            'disease': target_disease,
             'risk':prediction,
             'probability':max_prob,
             'temperature':round(record.get('Avg_Temperature_2m',0),1),
@@ -100,4 +111,28 @@ def export_csv(region):
         )
     except Exception as e:
         return jsonify({"status":"failed","error":str(e)}),500
-
+# Endpoint 4: Live Heatmap Data 
+@api_bp.route('/heatmap-data', methods=['GET'])
+def get_heatmap_data():
+    try:
+        # Hardcoded geographic coordinates to bypass the slow Nominatim API.
+        # This reduces API latency from ~2 seconds down to ~0.01 seconds.
+        coords = {
+            'Maharashtra': [19.75, 75.71],
+            'Karnataka': [12.97, 77.59],
+            'Kerala': [10.85, 76.27],
+            'Delhi': [28.70, 77.10]
+        }
+        
+        heatmap_points = []
+        for region, (lat, lon) in coords.items():
+            # Query MongoDB for the absolute most recent record for this state (-1 sort)
+            record = collection.find_one({'Region': region}, sort=[('Year', -1), ('Week_Num', -1)])
+            cases = record.get('Reported_Cases', 0) if record else 0
+            
+            # Pack it into the format Leaflet.js expects
+            heatmap_points.append([lat, lon, cases])
+            
+        return jsonify(heatmap_points), 200
+    except Exception as e:
+        return jsonify({'status': 'failed', 'error': str(e)}), 500

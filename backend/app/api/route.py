@@ -33,55 +33,67 @@ except Exception as e:
 @token_required #Protects the route if frontend dosen't send a valid JWT token
 def predict_outbreak():
     try:
-        req_data=request.get_json()
-        target_region=req_data.get('region')
-        date_str=req_data.get('date')
-        # This extracts the exact state and date user selects in th UI
-        target_disease = req_data.get('disease', 'Dengue')
-        if not target_region or not date_str:
-            return jsonify({"status":"error", "message":"Missing region or date"}), 400
-        target_date=datetime.strptime(date_str,"%Y-%m-%d")
+        req_data = request.get_json()
+        target_region = req_data.get('region')
+        date_str = req_data.get('date')
+        target_disease = req_data.get('disease', 'Unknown') # Added this so it doesn't crash on line 42!
+        
+        # This extracts the exact state and date user selects in the UI
+        target_date = datetime.strptime(date_str, "%Y-%m-%d")
+        
         record = collection.find_one({
             'Region': target_region,
             'Year': target_date.isocalendar().year,
             'Week_Num': target_date.isocalendar().week 
-            # Note: If your DB has a Disease_Name column, uncomment the line below:
-            # 'Disease_Name': target_disease
-        })# pipeline.py groups the data by Week Number 
+        }) # pipeline.py groups the data by Week Number 
+        
         if not record:
             return jsonify({'status':'error','message':'No data found for this period.'}), 404
-        #scikit-learn model expects a 2D array for inputs. The below features formats the data into exactly how RandomForest expects it
-        features = [[
-            record.get('Avg_Temperature_2m', 0),
-            record.get('Avg_Relative_Humidity_2m', 0),
-            record.get('Search_Trend_Score', 0),
-            record.get('Rainfall', 0),            # New Lag Feature
-            record.get('Cases_Last_Week', 0),     # New Lag Feature
-            record.get('Rainfall_Lag_1', 0),      # New Lag Feature
-            record.get('Temp_Humidity_Index', 0)  # New Engineered Feature
-        ]]
-        prediction_val=model.predict(features)[0]# Returns the actual label(High, Medium or Low)
+            
+        #scikit-learn/XGBoost expects a Pandas DataFrame with exact column names, not a 2D array.
+        #Force every single value to be a float so XGBoost doesn't crash on strings
+        features_df = pd.DataFrame([{
+            'Avg_Temperature_2m': float(record.get('Avg_Temperature_2m', 0)),
+            'Avg_Relative_Humidity_2m': float(record.get('Avg_Relative_Humidity_2m', 0)),
+            'Search_Trend_Score': float(record.get('Search_Trend_Score', 0)),
+            'Rainfall': float(record.get('Rainfall', 0)),
+            'Cases_Last_Week': float(record.get('Cases_Last_Week', 0)),
+            'Rainfall_Lag_1': float(record.get('Rainfall_Lag_1', 0)),
+            'Temp_Humidity_Index': float(record.get('Temp_Humidity_Index', 0))
+        }])
+        
+        # Pass the DataFrame to the model instead of the 2D array
+        prediction_val = model.predict(features_df)[0] # Returns the actual label(0, 1 or 2)
+        
         risk_map = {0: 'LOW', 1: 'MEDIUM', 2: 'HIGH'}
         prediction = risk_map.get(prediction_val, 'UNKNOWN')
-        max_prob=round(max(model.predict_proba(features)[0])*100, 1) # This function returns array of probabilities and use max() to grab the highest confidence and round off to 1 decimal place
-        # Now packing the database and ML's prediction into a clean dictionary to prepare it to send to the frontend
-        result_data={
-            'region':target_region,
-            'date':date_str,
+        
+        # Pass the DataFrame here too
+        max_prob = round(max(model.predict_proba(features_df)[0]) * 100, 1) 
+        
+        # Now packing the database and ML's prediction into a clean dictionary
+        result_data = {
+            'region': target_region,
+            'date': date_str,
             'disease': target_disease,
-            'risk':prediction,
-            'probability':max_prob,
-            'temperature':round(record.get('Avg_Temperature_2m',0),1),
-            'humidity': round(record.get('Avg_Relative_Humidity_2m',0),1),
-            'searchTrend': record.get('Search_Trend_Score',0),
+            'risk': prediction,
+            'probability': max_prob,
+            'temperature': round(record.get('Avg_Temperature_2m', 0), 1),
+            'humidity': round(record.get('Avg_Relative_Humidity_2m', 0), 1),
+            'searchTrend': record.get('Search_Trend_Score', 0),
             'timestamp': datetime.utcnow()
         }
+        
         predictions_col.insert_one(result_data.copy()) #Saves exact prediction to saved_prediction MongoDB collection
-        if '_id' in result_data : del result_data['_id'] #prevents the server from crashing 
+        
+        if '_id' in result_data: 
+            del result_data['_id'] #prevents the server from crashing 
+            
         return jsonify({'status':'success','data':result_data}), 200
+        
     except Exception as e:
+        print(f"PREDICT ERROR: {str(e)}") # Prints exact crash reason to terminal
         return jsonify({'status':'failed','error':str(e)}), 500
-
 #Endpoint2: Historical Timeline
 #Fronted uses this to draw line chart
 @api_bp.route('/historical/<region>',methods=['GET'])
@@ -111,6 +123,7 @@ def export_csv(region):
         )
     except Exception as e:
         return jsonify({"status":"failed","error":str(e)}),500
+
 # Endpoint 4: Live Heatmap Data 
 @api_bp.route('/heatmap-data', methods=['GET'])
 def get_heatmap_data():
@@ -136,3 +149,39 @@ def get_heatmap_data():
         return jsonify(heatmap_points), 200
     except Exception as e:
         return jsonify({'status': 'failed', 'error': str(e)}), 500
+
+# Endpoint 5: Regional Comparison Summary
+@api_bp.route('/regional-summary', methods=['GET'])
+@token_required
+def get_regional_summary():
+    try:
+        # We grab the active regions from your pipeline
+        regions = ['Maharashtra', 'Karnataka', 'Kerala']
+        summary = []
+        
+        for region in regions:
+            # Ask MongoDB to sum up all reported cases for this region
+            pipeline = [
+                {"$match": {"Region": region}},
+                {"$group": {"_id": None, "total": {"$sum": "$Reported_Cases"}}}
+            ]
+            result = list(collection.aggregate(pipeline))
+            total_cases = result[0]['total'] if result else 0
+            
+            #risk styling logic mathematically
+            if total_cases > 350:
+                risk = "high"
+            elif total_cases > 220:
+                risk = "moderate"
+            else:
+                risk = "low"
+                
+            summary.append({
+                "region": region,
+                "total": total_cases,
+                "risk": risk
+            })
+            
+        return jsonify({"status": "success", "data": summary}), 200
+    except Exception as e:
+        return jsonify({"status": "failed", "error": str(e)}), 500

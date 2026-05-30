@@ -355,7 +355,7 @@ function App() {
               <div className="health-bar"><div className="health-fill" style={{ width: "100%" }}></div></div>
             </div>
             <div className="health-item">
-              <span>XGBoost Engine <span style={{color:'#14b8a6'}}>100%</span></span>
+              <span>{predictionData?.activeModel || "Voting Ensemble"} Engine <span style={{color:'#14b8a6'}}>100%</span></span>
               <div className="health-bar"><div className="health-fill" style={{ width: "100%" }}></div></div>
             </div>
           </div>

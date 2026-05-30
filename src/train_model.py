@@ -8,6 +8,7 @@ from sklearn.metrics import accuracy_score, classification_report
 import joblib #To save trained python object, Flask API will load it later
 import os
 from db_config import get_database_client
+import json
 os.makedirs('backend/models',exist_ok=True)
 
 # Ingesting Data
@@ -52,6 +53,14 @@ voting_model.fit(X_train,y_train)
 y_pred = voting_model.predict(X_test)
 accuracy = accuracy_score(y_test, y_pred)
 print(f"Voting Ensemble Training Complete. Validation Accuracy: {accuracy*100:.2f}%")
-print(classification_report(y_test, y_pred, target_names=['Low', 'Medium', 'High']))
-joblib.dump(voting_model, 'backend/models/baseline_model.pkl')
+metadata = {
+    "active_model": "Voting Ensemble",
+    "accuracy": round(accuracy * 100, 2)
+}
+# Save the model
+joblib.dump(voting_model, 'backend/models/best_model.pkl')
+# Save the metadata
+with open("backend/models/model_metadata.json", "w") as f:
+    json.dump(metadata, f)
+print("\nModel and metadata saved successfully to backend/models/!")
 #This file will be loaded by Flask API to serve live predictions

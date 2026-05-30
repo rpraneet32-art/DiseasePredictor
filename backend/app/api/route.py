@@ -1,5 +1,4 @@
 # The database, ML model and Frontend all connect here
-
 #imports
 from flask import Blueprint, request, jsonify, Response #response is used to send files(like CVs) directly to browser instead of sending JSON data
 from datetime import datetime
@@ -70,7 +69,14 @@ def predict_outbreak():
         
         # Pass the DataFrame here too
         max_prob = round(max(model.predict_proba(features_df)[0]) * 100, 1) 
-        
+        import json
+        active_model_name = "Voting Ensemble" # Fallback default
+        try:
+            with open('backend/models/model_metadata.json', 'r') as f:
+                meta = json.load(f)
+                active_model_name = meta.get("active_model", "Voting Ensemble")
+        except Exception:
+            pass # Fails gracefully if the file hasn't been generated yet
         # Now packing the database and ML's prediction into a clean dictionary
         result_data = {
             'region': target_region,
@@ -78,6 +84,7 @@ def predict_outbreak():
             'disease': target_disease,
             'risk': prediction,
             'probability': max_prob,
+            'activeModel': active_model_name,
             'temperature': round(record.get('Avg_Temperature_2m', 0), 1),
             'humidity': round(record.get('Avg_Relative_Humidity_2m', 0), 1),
             'searchTrend': record.get('Search_Trend_Score', 0),

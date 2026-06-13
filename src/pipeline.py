@@ -1,7 +1,9 @@
 import os
 import io
 import time
+import sys
 import logging
+import numpy as np
 from datetime import datetime
 import requests
 import pandas as pd
@@ -15,14 +17,12 @@ from db_config import get_database_client
 os.makedirs('logs', exist_ok=True)
 log_filename = f"logs/pipeline_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
 
-import sys
-
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
-        logging.FileHandler(log_filename, encoding='utf-8'),
-        logging.StreamHandler(sys.stdout)
+        logging.FileHandler(log_filename, encoding='utf-8'),  # saves to file, handles emojis
+        logging.StreamHandler(sys.stdout)                     # prints to terminal
     ]
 )
 logger = logging.getLogger(__name__)
@@ -73,17 +73,21 @@ def with_retry(func, *args, max_retries=3, base_delay=10, **kwargs):
                 logger.error(f"❌ All {max_retries} attempts failed for {func.__name__}.")
                 raise
 
-
 # ─────────────────────────────────────────────
 # DATA VALIDATION
 # Checks the final merged dataset before it
 # ever touches the database
+# NEW: includes Rainfall and lag feature columns
 # ─────────────────────────────────────────────
 REQUIRED_COLUMNS = [
     'Year', 'Week_Num', 'Region',
     'Search_Trend_Score',
     'Avg_Temperature_2m',
     'Avg_Relative_Humidity_2m',
+    'Rainfall',                  # NEW from Tester-Branch
+    'Cases_Last_Week',           # NEW lag feature
+    'Rainfall_Lag_1',            # NEW lag feature
+    'Temp_Humidity_Index',       # NEW engineered feature
     'Reported_Cases'
 ]
 
@@ -108,7 +112,10 @@ def validate_dataset(df: pd.DataFrame) -> bool:
         df.dropna(subset=REQUIRED_COLUMNS, how='all', inplace=True)
 
     # Check 4: Numeric columns are actually numeric
-    numeric_cols = ['Search_Trend_Score', 'Avg_Temperature_2m', 'Avg_Relative_Humidity_2m', 'Reported_Cases']
+    numeric_cols = [
+        'Search_Trend_Score', 'Avg_Temperature_2m', 'Avg_Relative_Humidity_2m',
+        'Rainfall', 'Cases_Last_Week', 'Rainfall_Lag_1', 'Temp_Humidity_Index', 'Reported_Cases'
+    ]
     for col in numeric_cols:
         non_numeric = pd.to_numeric(df[col], errors='coerce').isna().sum()
         if non_numeric > 0:
@@ -140,7 +147,7 @@ def validate_dataset(df: pd.DataFrame) -> bool:
 # ─────────────────────────────────────────────
 
 def _fetch_trends_for_state(pytrends, keywords, timeframe_window, geo_code, state_name):
-    """Inner function — isolated so retry wrapper can target just this call."""
+    """Inner function isolated so retry wrapper can target just this call."""
     pytrends.build_payload(keywords, cat=0, timeframe=timeframe_window, geo=geo_code)
     chunk_df = pytrends.interest_over_time()
     return chunk_df
@@ -221,7 +228,8 @@ def fetch_multi_region_weather(geo_map, start_year=2016, end_year=2020):
             "longitude": loc['lon'],
             "start_date": f"{start_year}-01-01",
             "end_date": f"{end_year}-12-31",
-            "daily": ["temperature_2m_mean", "relative_humidity_2m_mean"],
+            # NEW: added precipitation_sum for Rainfall feature
+            "daily": ["temperature_2m_mean", "relative_humidity_2m_mean", "precipitation_sum"],
             "timezone": "Asia/Kolkata"
         }
         try:
@@ -236,7 +244,8 @@ def fetch_multi_region_weather(geo_map, start_year=2016, end_year=2020):
             state_weather_df = pd.DataFrame({
                 "Date": pd.to_datetime(daily_data["time"]),
                 "Avg_Temperature_2m": daily_data["temperature_2m_mean"],
-                "Avg_Relative_Humidity_2m": daily_data["relative_humidity_2m_mean"]
+                "Avg_Relative_Humidity_2m": daily_data["relative_humidity_2m_mean"],
+                "Rainfall": daily_data["precipitation_sum"]   # NEW: rainfall per day
             })
             state_weather_df['Year'] = state_weather_df['Date'].dt.isocalendar().year.astype(int)
             state_weather_df['Week_Num'] = state_weather_df['Date'].dt.isocalendar().week.astype(int)
@@ -244,7 +253,8 @@ def fetch_multi_region_weather(geo_map, start_year=2016, end_year=2020):
 
             weekly_grouped = state_weather_df.groupby(['Year', 'Week_Num', 'Region']).agg({
                 'Avg_Temperature_2m': 'mean',
-                'Avg_Relative_Humidity_2m': 'mean'
+                'Avg_Relative_Humidity_2m': 'mean',
+                'Rainfall': 'sum'                            # NEW: sum rainfall over the week
             }).reset_index()
 
             all_weather_records.append(weekly_grouped)
@@ -312,7 +322,7 @@ def run_etl_pipeline():
     cases_raw = fetch_epiclim_hospital_records()
 
     if trends_weekly.empty or weather_weekly.empty or cases_raw.empty:
-        logger.error("❌ Pipeline aborted: One or more data sources returned empty. Check logs above.")
+        logger.error("❌ Pipeline aborted: One or more data sources returned empty.")
         return
 
     # ── 2. TRANSFORM ──────────────────────────
@@ -330,7 +340,7 @@ def run_etl_pipeline():
     ].copy()
 
     if cases_filtered.empty:
-        logger.error("❌ No Dengue records found for target states after filtering. Aborting.")
+        logger.error("❌ No Dengue records found for target states. Aborting.")
         return
 
     cases_filtered['Week_Num'] = (
@@ -349,14 +359,26 @@ def run_etl_pipeline():
     final_dataset = pd.merge(fused_features, cases_weekly, on=['Year', 'Week_Num', 'Region'], how='inner')
     final_dataset.sort_values(by=['Region', 'Year', 'Week_Num'], inplace=True)
 
+    # ── 4. FEATURE ENGINEERING ────────────────
+    # NEW from Tester-Branch: time-lag features make the model smarter
+    logger.info("⚙️ Engineering time-lag features...")
+    # Last week's case count — captures outbreak momentum
+    final_dataset['Cases_Last_Week'] = final_dataset.groupby('Region')['Reported_Cases'].shift(1)
+    # Last week's rainfall — mosquitoes breed after rain, not during
+    final_dataset['Rainfall_Lag_1'] = final_dataset.groupby('Region')['Rainfall'].shift(1)
+    # Temperature × Humidity combined — mosquitoes thrive in hot+humid conditions together
+    final_dataset['Temp_Humidity_Index'] = final_dataset['Avg_Temperature_2m'] * final_dataset['Avg_Relative_Humidity_2m']
+    # Drop rows where lag features are NaN (first week of each region has no "last week")
+    final_dataset.dropna(inplace=True)
+
     logger.info(f"📐 Merge result: {len(final_dataset)} rows across {final_dataset['Region'].nunique()} regions.")
 
-    # ── 4. VALIDATE ───────────────────────────
+    # ── 5. VALIDATE ───────────────────────────
     if not validate_dataset(final_dataset):
         logger.error("❌ Pipeline aborted: Data validation failed. Nothing written to DB.")
         return
 
-    # ── 5. LOAD ───────────────────────────────
+    # ── 6. LOAD ───────────────────────────────
     logger.info("💾 Loading data into MongoDB...")
     try:
         db = get_database_client()

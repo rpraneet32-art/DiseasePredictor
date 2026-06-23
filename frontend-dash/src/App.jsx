@@ -12,11 +12,21 @@ import { useState } from "react";
 import Select from "react-select";
 import { Download, Lock, LogOut } from "lucide-react";
 import "leaflet/dist/leaflet.css";
-import Heatmap from "./components/Heatmap";
+
 
 function App() {
   // === BACKEND STATE ===
-  const [token, setToken] = useState(localStorage.getItem("token") || null);
+  const DEV_BYPASS_LOGIN = true;
+
+const weeks = Array.from({ length: 52 }, (_, i) => ({
+  value: i + 1,
+  label: `Week ${i + 1}`
+}));
+const [token, setToken] = useState(
+  DEV_BYPASS_LOGIN
+    ? "dev-token"
+    : localStorage.getItem("token") || null
+);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -31,11 +41,11 @@ function App() {
   // === UI STATE ===
   const [selectedDisease, setSelectedDisease] = useState("Dengue");
   const [selectedRegion, setSelectedRegion] = useState("Maharashtra");
-  const [selectedDate, setSelectedDate] = useState("2018-06-15");
+  const [selectedWeek, setSelectedWeek] = useState(24);
   const [visibleWeeks, setVisibleWeeks] = useState(8);
   const [startIndex, setStartIndex] = useState(0);
   const [sortOrder, setSortOrder] = useState("high");
-  const [showHeatmap, setShowHeatmap] = useState(false);
+
 
   // Notice we removed Delhi since your pipeline only scraped 3 states
   const activeRegions = ["Maharashtra", "Karnataka", "Kerala"];
@@ -84,7 +94,7 @@ function App() {
       const predResponse = await fetch("http://localhost:5000/api/predict", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ region: selectedRegion, date: selectedDate, disease: selectedDisease }),
+        body: JSON.stringify({ region: selectedRegion,week: selectedWeek, disease: selectedDisease }),
       });
       const predResult = await predResponse.json();
       if (predResponse.ok) setPredictionData(predResult.data);
@@ -195,27 +205,19 @@ function App() {
             value={{ value: selectedRegion, label: selectedRegion }}
             onChange={(s) => setSelectedRegion(s.value)} placeholder="Search region..."
           />
-          <input type="date" className="date-picker" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} min="2016-01-01" max="2020-12-31" />
+         <Select
+  className="search-select"
+  classNamePrefix="search"
+  styles={customSelectStyles}
+  options={weeks}
+  value={weeks.find(w => w.value === selectedWeek)}
+  onChange={(option) => setSelectedWeek(option.value)}
+/>
           <button className="execute-btn" onClick={executeAnalysis} disabled={isAnalyzing}>
             {isAnalyzing ? "..." : "RUN ANALYSIS"}
           </button>
         </div>
-
-        {showHeatmap && (
-          <div className="heatmap-modal">
-            <div className="heatmap-container">
-              <div className="heatmap-topbar">
-                <h2>Regional Heatmap</h2>
-                <button onClick={() => setShowHeatmap(false)} className="close-map-btn">✕</button>
-              </div>
-              <Heatmap />
-              <div className="heatmap-overlay">
-                <button className="close-map-btn" onClick={() => setShowHeatmap(false)}>✕ Close Map</button>
-                <Heatmap />
-              </div>
-            </div>
-          </div>
-        )}
+        
 
         <div className="topbar-center">
           <h1>Disease Detection Dashboard</h1>
@@ -225,15 +227,9 @@ function App() {
             <button className="download-btn" onClick={logout} style={{ background: '#f87171' }}><LogOut size={18} /> Logout</button>
           </div>
         </div>
-
-        <div className="heatmap-shortcut">
-          <div>
-            <h3>Regional Heatmap</h3>
-            <p>Geographic outbreak visualization</p>
-          </div>
-          <button className="heatmap-btn" onClick={() => setShowHeatmap(true)}>Open</button>
-        </div>
       </div>
+
+        
       
       {apiError && <div className="login-error" style={{ marginBottom: '20px' }}>{apiError}</div>}
 
@@ -252,7 +248,8 @@ function App() {
 
           <div className="risk-stats">
             <div className="risk-item"><span>Region</span><strong>{selectedRegion}</strong></div>
-            <div className="risk-item"><span>Target Date</span><strong>{selectedDate}</strong></div>
+            <div className="risk-item"><span>Selected Week</span>
+<strong>Week {selectedWeek}</strong></div>
             <div className="risk-item"><span>Humidity</span><strong>{latestData.humidity.toFixed(1)}%</strong></div>
           </div>
 

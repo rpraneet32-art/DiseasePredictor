@@ -16,7 +16,7 @@ import "leaflet/dist/leaflet.css";
 
 function App() {
   // === BACKEND STATE ===
-  const DEV_BYPASS_LOGIN = true;
+  const DEV_BYPASS_LOGIN = false;
 
 const weeks = Array.from({ length: 52 }, (_, i) => ({
   value: i + 1,

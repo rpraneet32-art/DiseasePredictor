@@ -15,16 +15,19 @@ from app.api.auth import token_required
 #Global State Initialization 
 # We are putting this block outside of any route function
 api_bp = Blueprint('api',__name__)
+import os
+current_dir = os.path.dirname(os.path.abspath(__file__))
+model_path = os.path.join(current_dir, '..', '..', 'models', 'best_model.pkl')
+
 try:
-    model=joblib.load('backend/models/baseline_model.pkl')
-    # if joblib.load() was put inside /predict route, the server would have to read the .pkl file from hard drive every time user clicked the button
+    model = joblib.load(model_path)
     # By putting it here the DB and model connect once when server starts and stays in RAM for instant access
     db = get_database_client()
-    collection=db['fused_outbreak_data']
-    predictions_col=db['saved_predictions']
+    collection = db['fused_outbreak_data']
+    predictions_col = db['saved_predictions']
 except Exception as e:
-    model=None
-    db=None
+    model = None
+    db = None
     print(f"Startup Error: {e}")
 
 #Endpoint1: The prediction engine
@@ -34,17 +37,18 @@ def predict_outbreak():
     try:
         req_data = request.get_json()
         target_region = req_data.get('region')
-        date_str = req_data.get('date')
-        target_disease = req_data.get('disease', 'Unknown') # Added this so it doesn't crash on line 42!
+        target_week = req_data.get('week')
+        target_disease = req_data.get('disease', 'Unknown')
         
-        # This extracts the exact state and date user selects in the UI
-        target_date = datetime.strptime(date_str, "%Y-%m-%d")
+        if not target_region or not target_week:
+            return jsonify({'status':'error','message':'Region and week are required.'}), 400
         
-        record = collection.find_one({
-            'Region': target_region,
-            'Year': target_date.isocalendar().year,
-            'Week_Num': target_date.isocalendar().week 
-        }) # pipeline.py groups the data by Week Number 
+        # Find the most recent year's data for this region + week number
+        # pipeline.py groups the data by Week Number 
+        record = collection.find_one(
+            {'Region': target_region, 'Week_Num': int(target_week)},
+            sort=[('Year', -1)]
+        )
         
         if not record:
             return jsonify({'status':'error','message':'No data found for this period.'}), 404
@@ -80,7 +84,7 @@ def predict_outbreak():
         # Now packing the database and ML's prediction into a clean dictionary
         result_data = {
             'region': target_region,
-            'date': date_str,
+            'week': int(target_week),
             'disease': target_disease,
             'risk': prediction,
             'probability': max_prob,

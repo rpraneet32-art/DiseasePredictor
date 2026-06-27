@@ -6,5 +6,7 @@ joblib
 numpy
 pymongo
 PyJWT
-
-
+xgboost
+pytrends
+python-dotenv
+requests

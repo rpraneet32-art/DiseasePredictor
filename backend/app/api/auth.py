@@ -15,7 +15,6 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 ADMIN_USERNAME = os.getenv('ADMIN_USERNAME')
 ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD') 
 #cryptographic key is signed with this string when token is created
-auth_bp=Blueprint('auth',__name__) #creates auth blueprint and groups all routes attached to the auth_bp
 #security decorator
 def token_required(f):#defines the decorator(wraps around f, running some code before f is executed) function 
     @wraps(f)

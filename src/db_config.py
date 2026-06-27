@@ -1,11 +1,13 @@
 # src/db_config.py
 from pymongo import MongoClient
 import sys
+import os
 
 # Connection Configurations
+# Set MONGO_URI in your .env file or environment variables
 # Local default: 'mongodb://localhost:27017/'
-# Cloud Atlas default will look like: 'mongodb+srv://<user>:<password>@cluster.mongodb.net/'
-MONGO_URI = 'mongodb://localhost:27017/' 
+# Cloud Atlas: 'mongodb+srv://<user>:<password>@cluster.mongodb.net/'
+MONGO_URI = os.environ.get('MONGO_URI', 'mongodb://localhost:27017/')
 DB_NAME = 'disease_predictor'
 
 def get_database_client():

@@ -10,8 +10,9 @@ import {
 } from "recharts";
 import { useState } from "react";
 import Select from "react-select";
-import { Download, Lock, LogOut } from "lucide-react";
+import { Download, Lock, LogOut, Map } from "lucide-react";
 import "leaflet/dist/leaflet.css";
+import Heatmap from "./components/Heatmap";
 
 
 function App() {
@@ -45,6 +46,7 @@ const [token, setToken] = useState(
   const [visibleWeeks, setVisibleWeeks] = useState(8);
   const [startIndex, setStartIndex] = useState(0);
   const [sortOrder, setSortOrder] = useState("high");
+  const [showHeatmap, setShowHeatmap] = useState(false);
 
 
   // Notice we removed Delhi since your pipeline only scraped 3 states
@@ -224,6 +226,7 @@ const [token, setToken] = useState(
           <p>AI-powered outbreak intelligence dashboard</p>
           <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
             <button className="download-btn" onClick={downloadDataset}><Download size={18} /> Dataset</button>
+            <button className="download-btn" onClick={() => setShowHeatmap(true)} style={{ background: '#0f766e' }}><Map size={18} /> Heatmap</button>
             <button className="download-btn" onClick={logout} style={{ background: '#f87171' }}><LogOut size={18} /> Logout</button>
           </div>
         </div>
@@ -373,6 +376,19 @@ const [token, setToken] = useState(
           </div>
         </div>
       </div>
+
+      {/* HEATMAP MODAL */}
+      {showHeatmap && (
+        <div className="heatmap-modal">
+          <div className="heatmap-container">
+            <div className="heatmap-topbar">
+              <h2>Outbreak Heatmap — India</h2>
+              <button className="close-map-btn" onClick={() => setShowHeatmap(false)}>✕</button>
+            </div>
+            <Heatmap />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

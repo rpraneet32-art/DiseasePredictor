@@ -1,6 +1,6 @@
 # 🦟 Disease Outbreak Predictor
 
-An AI-powered disease outbreak prediction system that fuses real-world health data, climate patterns, and search trends to predict **Dengue fever** outbreak risk across Indian states. Select a region and time period, and the system outputs a predicted risk level (LOW / MEDIUM / HIGH) with confidence scores, visualized through an interactive dashboard and heatmap.
+An AI-powered disease outbreak prediction system that fuses real-world health data, climate patterns, and search trends to predict **Dengue, Malaria, and Chikungunya** outbreak risk across Indian states. Select a region and time period, and the system outputs a forecasted risk level for the upcoming week (LOW / MEDIUM / HIGH) with confidence scores, visualized through an interactive dashboard and heatmap.
 
 ---
 
@@ -77,11 +77,11 @@ An AI-powered disease outbreak prediction system that fuses real-world health da
 
 | Source | What It Provides | API/URL |
 |--------|-----------------|---------|
-| **Google Trends** (via pytrends) | Weekly search interest for "dengue symptoms" per Indian state | `pytrends.request.TrendReq` |
+| **Google Trends** (via pytrends) | Weekly search interest for disease symptoms per Indian state | `pytrends.request.TrendReq` |
 | **Open-Meteo Archive** | Historical daily weather data (temperature, humidity, rainfall) aggregated to weekly | `https://archive-api.open-meteo.com/v1/archive` |
 | **EpiClim Registry** (Zenodo) | Hospital-reported disease case counts by state, disease, and outbreak week | `https://zenodo.org/records/14580510/files/Final_data.csv` |
 
-**Coverage:** Maharashtra, Karnataka, Kerala — Weekly data from 2016 to 2020.
+**Coverage:** Maharashtra, West Bengal, Tripura, Gujarat, Karnataka — Weekly data from 2016 to 2020.
 
 ---
 
@@ -134,9 +134,10 @@ The model is serialized to `backend/models/best_model.pkl` using `joblib` and lo
 |-------|-----------|
 | **Data Pipeline** | Python 3.x, Pandas, pytrends, Requests |
 | **ML Training** | Scikit-learn, XGBoost, Joblib |
-| **Backend** | Flask, Flask-CORS, PyJWT, PyMongo |
-| **Database** | MongoDB |
+| **Backend API** | Flask, Flask-CORS, PyJWT, Werkzeug Security |
+| **Database & Cache** | MongoDB Atlas, Redis |
 | **Frontend** | React 19, Vite 8, Recharts, Leaflet, Tailwind CSS v4 |
+| **Deployment** | Docker, Docker-Compose, Gunicorn, Nginx |
 
 ---
 
@@ -155,7 +156,17 @@ git clone <repo-url>
 cd DiseasePredictor
 ```
 
-### 2. Set Up the Backend
+### 2. Docker Deployment (Recommended)
+The entire system is containerized for production. You can launch the Frontend (Nginx), Backend (Gunicorn), and Cache (Redis) with a single command:
+
+```bash
+docker-compose up --build -d
+```
+The dashboard will be instantly available at `http://localhost`.
+
+---
+
+### 3. Manual Local Setup (Development)
 
 ```bash
 # Create and activate a virtual environment
@@ -298,6 +309,9 @@ DiseasePredictor/
 │           └── Heatmap.jsx     # Leaflet heatmap component
 │
 ├── requirements.txt            # Python dependencies
+├── Dockerfile.backend          # Gunicorn production container
+├── Dockerfile.frontend         # Nginx production container
+├── docker-compose.yml          # Microservices orchestrator
 ├── Dependencies.md             # Dependency reference document
 └── .gitignore
 ```

@@ -306,4 +306,4 @@ DiseasePredictor/
 
 ## 📄 License
 
-This project was built as part of the ACM Club project program.
+This project was built as part of the TAM Club project program.

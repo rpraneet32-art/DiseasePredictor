@@ -1,185 +1,206 @@
-# The database, ML model and Frontend all connect here
-#imports
-from flask import Blueprint, request, jsonify, Response #response is used to send files(like CVs) directly to browser instead of sending JSON data
+from flask import Blueprint, request, jsonify, Response
 from datetime import datetime
 import pandas as pd
 import joblib   
 import sys
-import os #both sys and os used to manipulate server's file path
-import io #use to create fake file in server so our RAM doesn't clutter
-# Since Flask app is farther inside then the db.config it won't be able to find it normally. line below will force python to search file tree to import the database connection
+import os
+import io
+import json
+import redis
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),'../../..','src')))
 from db_config import get_database_client
 from app.api.auth import token_required
 
-#Global State Initialization 
-# We are putting this block outside of any route function
 api_bp = Blueprint('api',__name__)
-import os
 current_dir = os.path.dirname(os.path.abspath(__file__))
 model_path = os.path.join(current_dir, '..', '..', 'models', 'best_model.pkl')
+meta_path = os.path.join(current_dir, '..', '..', 'models', 'model_metadata.json')
+
+# Redis setup
+try:
+    redis_host = os.getenv('REDIS_HOST', 'localhost')
+    redis_client = redis.Redis(host=redis_host, port=6379, db=0, decode_responses=True, socket_timeout=1, socket_connect_timeout=1)
+except Exception:
+    redis_client = None
+
+def get_cached(key):
+    return None
+
+def set_cached(key, data):
+    pass
 
 try:
     model = joblib.load(model_path)
-    # By putting it here the DB and model connect once when server starts and stays in RAM for instant access
     db = get_database_client()
     collection = db['fused_outbreak_data']
     predictions_col = db['saved_predictions']
+    with open(meta_path, 'r') as f:
+        meta = json.load(f)
 except Exception as e:
     model = None
     db = None
+    meta = {}
     print(f"Startup Error: {e}")
 
-#Endpoint1: The prediction engine
-@api_bp.route('/predict',methods=['POST']) #Creates /api/predict endpoint 
-@token_required #Protects the route if frontend dosen't send a valid JWT token
+@api_bp.route('/predict',methods=['POST'])
+@token_required
 def predict_outbreak():
     try:
         req_data = request.get_json()
         target_region = req_data.get('region')
         target_week = req_data.get('week')
-        target_disease = req_data.get('disease', 'Unknown')
+        target_disease = req_data.get('disease', 'Dengue') # Default to Dengue if not provided
         
         if not target_region or not target_week:
             return jsonify({'status':'error','message':'Region and week are required.'}), 400
         
-        # Find the most recent year's data for this region + week number
-        # pipeline.py groups the data by Week Number 
         record = collection.find_one(
-            {'Region': target_region, 'Week_Num': int(target_week)},
+            {'Region': target_region, 'Week_Num': int(target_week), 'Disease_Name': target_disease},
             sort=[('Year', -1)]
         )
         
         if not record:
-            return jsonify({'status':'error','message':'No data found for this period.'}), 404
+            return jsonify({'status':'error','message':'No data found for this period and disease.'}), 404
             
-        #scikit-learn/XGBoost expects a Pandas DataFrame with exact column names, not a 2D array.
-        #Force every single value to be a float so XGBoost doesn't crash on strings
-        features_df = pd.DataFrame([{
-            'Avg_Temperature_2m': float(record.get('Avg_Temperature_2m', 0)),
-            'Avg_Relative_Humidity_2m': float(record.get('Avg_Relative_Humidity_2m', 0)),
-            'Search_Trend_Score': float(record.get('Search_Trend_Score', 0)),
-            'Rainfall': float(record.get('Rainfall', 0)),
-            'Cases_Last_Week': float(record.get('Cases_Last_Week', 0)),
-            'Rainfall_Lag_1': float(record.get('Rainfall_Lag_1', 0)),
-            'Temp_Humidity_Index': float(record.get('Temp_Humidity_Index', 0))
-        }])
+        # Build features array exactly as the model expects
+        feature_cols = meta.get("features", [])
+        features_dict = {col: 0.0 for col in feature_cols}
         
-        # Pass the DataFrame to the model instead of the 2D array
-        prediction_val = model.predict(features_df)[0] # Returns the actual label(0, 1 or 2)
+        # Populate continuous features
+        features_dict['Avg_Temperature_2m'] = float(record.get('Avg_Temperature_2m', 0))
+        features_dict['Avg_Relative_Humidity_2m'] = float(record.get('Avg_Relative_Humidity_2m', 0))
+        features_dict['Search_Trend_Score'] = float(record.get('Search_Trend_Score', 0))
+        features_dict['Rainfall'] = float(record.get('Rainfall', 0))
+        features_dict['Cases_Last_Week'] = float(record.get('Cases_Last_Week', 0))
+        features_dict['Rainfall_Lag_1'] = float(record.get('Rainfall_Lag_1', 0))
+        features_dict['Temp_Humidity_Index'] = float(record.get('Temp_Humidity_Index', 0))
+        features_dict['Population_Density'] = float(record.get('Population_Density', 0))
+        features_dict['Hospital_Beds_Per_1000'] = float(record.get('Hospital_Beds_Per_1000', 0))
         
+        # Populate one-hot categorical features
+        if f"Region_{target_region}" in features_dict:
+            features_dict[f"Region_{target_region}"] = 1.0
+        if f"Disease_Name_{target_disease}" in features_dict:
+            features_dict[f"Disease_Name_{target_disease}"] = 1.0
+            
+        features_df = pd.DataFrame([features_dict])[feature_cols] # Ensure strict column ordering
+        
+        prediction_val = model.predict(features_df)[0]
         risk_map = {0: 'LOW', 1: 'MEDIUM', 2: 'HIGH'}
         prediction = risk_map.get(prediction_val, 'UNKNOWN')
         
-        # Pass the DataFrame here too
         max_prob = round(max(model.predict_proba(features_df)[0]) * 100, 1) 
-        import json
-        active_model_name = "Voting Ensemble" # Fallback default
-        try:
-            with open('backend/models/model_metadata.json', 'r') as f:
-                meta = json.load(f)
-                active_model_name = meta.get("active_model", "Voting Ensemble")
-        except Exception:
-            pass # Fails gracefully if the file hasn't been generated yet
-        # Now packing the database and ML's prediction into a clean dictionary
+        active_model_name = meta.get("active_model", "Multi-Disease Forecaster")
+        
         result_data = {
             'region': target_region,
             'week': int(target_week),
             'disease': target_disease,
-            'risk': prediction,
+            'risk': prediction, # Note: this is now a FORECAST for t+1
             'probability': max_prob,
             'activeModel': active_model_name,
             'temperature': round(record.get('Avg_Temperature_2m', 0), 1),
             'humidity': round(record.get('Avg_Relative_Humidity_2m', 0), 1),
             'searchTrend': record.get('Search_Trend_Score', 0),
+            'dataYear': record.get('Year', 2024),
+            'forecastWeek': (int(target_week) % 52) + 1,
             'timestamp': datetime.utcnow()
         }
         
-        predictions_col.insert_one(result_data.copy()) #Saves exact prediction to saved_prediction MongoDB collection
+        predictions_col.insert_one(result_data.copy())
         
         if '_id' in result_data: 
-            del result_data['_id'] #prevents the server from crashing 
+            del result_data['_id']
             
         return jsonify({'status':'success','data':result_data}), 200
         
     except Exception as e:
-        print(f"PREDICT ERROR: {str(e)}") # Prints exact crash reason to terminal
+        print(f"PREDICT ERROR: {str(e)}") 
         return jsonify({'status':'failed','error':str(e)}), 500
-#Endpoint2: Historical Timeline
-#Fronted uses this to draw line chart
+
 @api_bp.route('/historical/<region>',methods=['GET'])
 @token_required
 def get_historical(region):
+    disease = request.args.get('disease', 'Dengue')
+    cache_key = f"hist_{region}_{disease}"
+    
+    cached = get_cached(cache_key)
+    if cached:
+        return jsonify({"status": "success", "data": json.loads(cached)}), 200
+        
     try:
-        #find() takes arguments: (The Query:what to look for) AND (The Projection:What Columns to hide)
-        records=list(collection.find({'Region':region},{'_id':0}).sort([('Year',1),('Week_Num',1)])) #1 ensures the data is in ascending order so the line chart draws perfectly
+        records=list(collection.find({'Region':region, 'Disease_Name': disease},{'_id':0}).sort([('Year',1),('Week_Num',1)]))
+        set_cached(cache_key, json.dumps(records))
         return jsonify({"status":"success","data":records}),200
     except Exception as e:
         return jsonify({"status":"failed","error":str(e)}), 500
     
-#Endpoint3: CSV export
 @api_bp.route('/export/<region>',methods=['GET'])
 def export_csv(region):
+    disease = request.args.get('disease', 'Dengue')
     try:
-        records = list(collection.find({"Region":region},{'_id':0}))
+        records = list(collection.find({"Region":region, "Disease_Name": disease},{'_id':0}))
         if not records:
             return jsonify({"status":"failed","message":"No data found"}), 404
-        df = pd.DataFrame(records) #converts database records in dataframe
-        csv_buffer = io.StringIO() #Pandas saves the data directly in string format in server's Ram.
+        df = pd.DataFrame(records)
+        csv_buffer = io.StringIO()
         df.to_csv(csv_buffer,index=False)
         return Response(
             csv_buffer.getvalue(),
             mimetype="text/csv",
-            headers={"Content-disposition":f"attachment; filename=outbreak_data_{region}.csv"} #triggers a file download popup for the user.
+            headers={"Content-disposition":f"attachment; filename=outbreak_data_{disease}_{region}.csv"}
         )
     except Exception as e:
         return jsonify({"status":"failed","error":str(e)}),500
 
-# Endpoint 4: Live Heatmap Data 
 @api_bp.route('/heatmap-data', methods=['GET'])
 def get_heatmap_data():
+    disease = request.args.get('disease', 'Dengue')
     try:
-        # Hardcoded geographic coordinates to bypass the slow Nominatim API.
-        # This reduces API latency from ~2 seconds down to ~0.01 seconds.
         coords = {
             'Maharashtra': [19.75, 75.71],
-            'Karnataka': [12.97, 77.59],
-            'Kerala': [10.85, 76.27],
-            'Delhi': [28.70, 77.10]
+            'West Bengal': [22.98, 87.85],
+            'Tripura': [23.94, 91.98],
+            'Gujarat': [22.25, 71.19],
+            'Karnataka': [12.97, 77.59]
         }
         
         heatmap_points = []
-        for region, (lat, lon) in coords.items():
-            # Query MongoDB for the absolute most recent record for this state (-1 sort)
-            record = collection.find_one({'Region': region}, sort=[('Year', -1), ('Week_Num', -1)])
+        for region, coord in coords.items():
+            record = collection.find_one(
+                {'Region': region, 'Disease_Name': disease}, 
+                sort=[('Year', -1), ('Week_Num', -1)]
+            )
             cases = record.get('Reported_Cases', 0) if record else 0
-            
-            # Pack it into the format Leaflet.js expects
-            heatmap_points.append([lat, lon, cases])
+            heatmap_points.append([coord[0], coord[1], cases])
             
         return jsonify(heatmap_points), 200
     except Exception as e:
         return jsonify({'status': 'failed', 'error': str(e)}), 500
 
-# Endpoint 5: Regional Comparison Summary
 @api_bp.route('/regional-summary', methods=['GET'])
 @token_required
 def get_regional_summary():
+    disease = request.args.get('disease', 'Dengue')
+    cache_key = f"summary_{disease}"
+    
+    cached = get_cached(cache_key)
+    if cached:
+        return jsonify({"status": "success", "data": json.loads(cached)}), 200
+        
     try:
-        # We grab the active regions from your pipeline
-        regions = ['Maharashtra', 'Karnataka', 'Kerala']
+        regions = ['Maharashtra', 'West Bengal', 'Tripura', 'Gujarat', 'Karnataka']
         summary = []
         
         for region in regions:
-            # Ask MongoDB to sum up all reported cases for this region
             pipeline = [
-                {"$match": {"Region": region}},
+                {"$match": {"Region": region, "Disease_Name": disease}},
                 {"$group": {"_id": None, "total": {"$sum": "$Reported_Cases"}}}
             ]
             result = list(collection.aggregate(pipeline))
             total_cases = result[0]['total'] if result else 0
             
-            #risk styling logic mathematically
             if total_cases > 350:
                 risk = "high"
             elif total_cases > 220:
@@ -193,6 +214,7 @@ def get_regional_summary():
                 "risk": risk
             })
             
+        set_cached(cache_key, json.dumps(summary))
         return jsonify({"status": "success", "data": summary}), 200
     except Exception as e:
         return jsonify({"status": "failed", "error": str(e)}), 500

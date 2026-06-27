@@ -1,48 +1,65 @@
-# imports
 from flask import Blueprint, request, jsonify
-#Blueprint: Flask tool to organize routes into different files
-#request: Allows access of incoming HTTP request from frontend
-#jsonify: converts python dictionaries into proper JSON formats
-import jwt #PyJWT lib to create and read JSON web tokens
-from datetime import datetime, timedelta #will use to set exact expiration time of token
-from functools import wraps #keeps original function's name and metadata preserved
+import jwt
+from datetime import datetime, timedelta
+from functools import wraps
 import os
 from dotenv import load_dotenv
+from werkzeug.security import generate_password_hash, check_password_hash
+import sys
+
+# Ensure we can import db_config
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),'../../..','src')))
+from db_config import get_database_client
+
 load_dotenv()
-#Initial Setup
-auth_bp=Blueprint('auth',__name__) #creates auth blueprint and groups all routes attached to the auth_bp
-SECRET_KEY = os.getenv('SECRET_KEY')
-ADMIN_USERNAME = os.getenv('ADMIN_USERNAME')
-ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD') 
-#cryptographic key is signed with this string when token is created
-#security decorator
-def token_required(f):#defines the decorator(wraps around f, running some code before f is executed) function 
+auth_bp = Blueprint('auth', __name__)
+SECRET_KEY = os.getenv('SECRET_KEY', 'fallback_secret')
+
+def get_user_collection():
+    db = get_database_client()
+    return db['users']
+
+# Initialize default admin if none exists
+try:
+    users_col = get_user_collection()
+    if users_col.count_documents({"username": "admin"}) == 0:
+        admin_pass = os.getenv('ADMIN_PASSWORD', 'admin123')
+        users_col.insert_one({
+            "username": "admin",
+            "password_hash": generate_password_hash(admin_pass)
+        })
+except Exception as e:
+    print(f"Auth init error: {e}")
+
+def token_required(f):
     @wraps(f)
-    def decorated(*args, **kwargs): # actual wrapper logic, takes arguments (args, kwargs) that original route might need
+    def decorated(*args, **kwargs):
         token = None
         if 'Authorization' in request.headers:
             token = request.headers['Authorization'].split(" ")[1]
         if not token:
             return jsonify({'message': 'Token is missing!'}), 401
         try:
-            #token=token.split([1]) #Cuts the string at space and grabs the actual token
-            data=jwt.decode(token,SECRET_KEY, algorithms=["HS256"]) #takes the token checks signature against SECRET_KEY and expects HS256 encryption
+            data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         except Exception as e:
             return jsonify({'message':'Token is invalid!','error':str(e)}), 401
-        return f(*args, **kwargs)#if try succeeds f will execute
-    return decorated #returns wrapper function so it can used on routes
+        return f(*args, **kwargs)
+    return decorated
 
-# The login Route
-@auth_bp.route('/login',methods=['POST']) #creates endpoint at '/login' to only accept post request
+@auth_bp.route('/login', methods=['POST'])
 def login():
-    auth=request.get_json() #gets the json body sent from frontend
+    auth = request.get_json()
     if not auth or not auth.get('username') or not auth.get('password'):
         return jsonify({'message': 'Missing credentials'}), 401
-    if auth.get('username') == ADMIN_USERNAME and auth.get('password') == ADMIN_PASSWORD:
-        #if credentials match it starts creating JWT
+    
+    users_col = get_user_collection()
+    user = users_col.find_one({"username": auth.get('username')})
+    
+    if user and check_password_hash(user['password_hash'], auth.get('password')):
         token = jwt.encode({
-            'user': ADMIN_USERNAME, 
+            'user': user['username'], 
             'exp': datetime.utcnow() + timedelta(hours=12)
         }, SECRET_KEY, algorithm='HS256')
-        return jsonify({'token':token})
-    return jsonify({'message':'Could not verify'}),401
+        return jsonify({'token': token})
+        
+    return jsonify({'message':'Could not verify'}), 401

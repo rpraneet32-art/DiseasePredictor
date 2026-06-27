@@ -1,1 +1,1 @@
-{"active_model": "Voting Ensemble", "accuracy": 67.5}
+{"active_model": "Multi-Disease Forecaster", "accuracy": 57.69, "features": ["Avg_Temperature_2m", "Avg_Relative_Humidity_2m", "Search_Trend_Score", "Rainfall", "Cases_Last_Week", "Rainfall_Lag_1", "Temp_Humidity_Index", "Population_Density", "Hospital_Beds_Per_1000", "Region_Gujarat", "Region_Karnataka", "Region_Maharashtra", "Region_West Bengal", "Disease_Name_Chikungunya", "Disease_Name_Dengue", "Disease_Name_Malaria"]}

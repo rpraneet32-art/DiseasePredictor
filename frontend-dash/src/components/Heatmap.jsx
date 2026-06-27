@@ -21,16 +21,16 @@ function HeatLayer({ heatData }) {
   return null;
 }
 
-function Heatmap() {
+function Heatmap({ disease }) {
   const [heatData, setHeatData] = useState([]);
 
   useEffect(() => {
     // 🔌 WIRED TO LIVE FLASK BACKEND
-    fetch("http://localhost:5000/api/heatmap-data")
+    fetch(`http://localhost:5000/api/heatmap-data?disease=${disease}`)
       .then(res => res.json())
       .then(data => setHeatData(data))
       .catch(error => console.error(error));
-  }, []);
+  }, [disease]);
 
   return (
     <div style={{ height:"100vh", width:"100%" }}>

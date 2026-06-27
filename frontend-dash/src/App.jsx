@@ -50,8 +50,8 @@ const [token, setToken] = useState(
 
 
   // Notice we removed Delhi since your pipeline only scraped 3 states
-  const activeRegions = ["Maharashtra", "Karnataka", "Kerala"];
-  const diseases = ["Dengue", "Flu", "Covid"];
+  const activeRegions = ["Maharashtra", "West Bengal", "Tripura", "Gujarat", "Karnataka"];
+  const diseases = ["Dengue", "Malaria", "Chikungunya"];
 
   // === API CALLS ===
   const logout = () => {
@@ -103,7 +103,7 @@ const [token, setToken] = useState(
       else setApiError(predResult.message);
 
       // 2. Fetch Line Chart Data
-      const histResponse = await fetch(`http://localhost:5000/api/historical/${selectedRegion}`, {
+      const histResponse = await fetch(`http://localhost:5000/api/historical/${selectedRegion}?disease=${selectedDisease}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const histResult = await histResponse.json();
@@ -118,7 +118,7 @@ const [token, setToken] = useState(
       }
 
       // 3. NEW: Fetch Data for the Regional Comparison Table
-      const summaryResponse = await fetch(`http://localhost:5000/api/regional-summary`, {
+      const summaryResponse = await fetch(`http://localhost:5000/api/regional-summary?disease=${selectedDisease}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const summaryResult = await summaryResponse.json();
@@ -133,7 +133,7 @@ const [token, setToken] = useState(
     }
   };
 
-  const downloadDataset = () => window.open(`http://localhost:5000/api/export/${selectedRegion}`, "_blank");
+  const downloadDataset = () => window.open(`http://localhost:5000/api/export/${selectedRegion}?disease=${selectedDisease}`, "_blank");
 
   const customSelectStyles = {
     control:(provided)=>({ ...provided, background:"#fcfcfd", border:"1px solid #cbd5e1", borderRadius:"16px", minHeight:"52px", boxShadow:"none", cursor:"pointer", color:"#0f172a" }),
@@ -251,9 +251,14 @@ const [token, setToken] = useState(
 
           <div className="risk-stats">
             <div className="risk-item"><span>Region</span><strong>{selectedRegion}</strong></div>
-            <div className="risk-item"><span>Selected Week</span>
-<strong>Week {selectedWeek}</strong></div>
-            <div className="risk-item"><span>Humidity</span><strong>{latestData.humidity.toFixed(1)}%</strong></div>
+            <div className="risk-item">
+              <span>Forecasting</span>
+              <strong>Week {predictionData?.forecastWeek || selectedWeek}</strong>
+            </div>
+            <div className="risk-item">
+              <span>Data Source</span>
+              <strong>Week {selectedWeek}, {predictionData?.dataYear || "..."}</strong>
+            </div>
           </div>
 
           <div className="region-table">
@@ -385,7 +390,7 @@ const [token, setToken] = useState(
               <h2>Outbreak Heatmap — India</h2>
               <button className="close-map-btn" onClick={() => setShowHeatmap(false)}>✕</button>
             </div>
-            <Heatmap />
+            <Heatmap disease={selectedDisease} />
           </div>
         </div>
       )}

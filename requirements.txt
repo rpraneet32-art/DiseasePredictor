@@ -10,3 +10,6 @@ xgboost
 pytrends
 python-dotenv
 requests
+gunicorn
+redis
+werkzeug
